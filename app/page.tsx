@@ -419,7 +419,6 @@ export default function Home() {
   const trackStat = async (id: any, type: 'view' | 'download') => {
     if (!id) return;
     
-    // ⭐️ เพิ่มการระบุ Type อย่างชัดเจนป้องกัน Vercel Error
     setAllResults((prev: any[]) => prev.map((item: any) => {
       if (item.id == id) {
         return { ...item, [type === 'view' ? 'view_count' : 'download_count']: (item[type === 'view' ? 'view_count' : 'download_count'] || 0) + 1 };
@@ -428,7 +427,6 @@ export default function Home() {
     }));
 
     if (selectedThesis && selectedThesis.id == id) {
-      // ⭐️ เพิ่มการระบุ Type อย่างชัดเจนป้องกัน Vercel Error
       setSelectedThesis((prev: any) => prev ? {
         ...prev,
         [type === 'view' ? 'view_count' : 'download_count']: (prev[type === 'view' ? 'view_count' : 'download_count'] || 0) + 1
@@ -780,7 +778,7 @@ export default function Home() {
                 className={`flex-1 bg-transparent border-none outline-none w-full px-2 ${showAdvanced ? 'text-gray-400 dark:text-gray-500' : 'text-slate-900 dark:text-white placeholder-slate-400'}`}
               />
               
-              <div className="flex items-center gap-2 ml-2 pl-3 border-l border-gray-300 dark:border-slate-700 flex-shrink-0 w-full sm:w-auto justify-end">
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0 sm:ml-2 sm:pl-3 sm:border-l border-gray-300 dark:border-slate-700 flex-shrink-0">
                 <div className="relative hidden sm:block mr-1">
                   <select
                     value={searchMode}
@@ -873,15 +871,16 @@ export default function Home() {
         {hasSearched && !isLoading && allResults.length > 0 && (
           <div className="w-full flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 mb-5 px-4 py-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800">
             
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 flex-1">
-              <div className="flex flex-row items-center justify-between w-full md:w-auto">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1">
+              <div className="flex flex-row items-center justify-between w-full sm:w-auto">
                 <p className="font-semibold text-slate-500 dark:text-gray-400 whitespace-nowrap">
                   {t.found} <span className="text-blue-600 dark:text-blue-400 font-bold text-lg">{filteredAndSortedResults.length}</span> {t.items}
                 </p>
               </div>
 
+              {/* ⭐️ แก้บั๊ก UI: ขยับกล่อง Items Per Page ขึ้นบรรทัดใหม่เมื่อจอเล็ก และไม่ทับ Search */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full">
-                <div className="flex items-center gap-2 pl-0 md:pl-4 md:border-l border-slate-300 dark:border-slate-700 h-6 shrink-0">
+                <div className="flex items-center gap-2 pl-0 sm:pl-4 sm:border-l border-slate-300 dark:border-slate-700 h-6 shrink-0">
                   <span className="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">{t.showPerPage}</span>
                   <select 
                     value={itemsPerPage} 
@@ -913,7 +912,7 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="flex flex-row items-center justify-between lg:justify-end gap-3 w-full lg:w-auto mt-2 lg:mt-0">
+            <div className="flex flex-row flex-wrap items-center justify-between sm:justify-end gap-3 w-full lg:w-auto mt-2 lg:mt-0">
               <div className="relative flex items-center bg-slate-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded-full px-4 py-2 shadow-sm flex-1 sm:flex-none">
                 <ArrowUpDown className="w-4 h-4 text-slate-500 mr-2" />
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} disabled={searchMode === "Semantic"} className="appearance-none bg-transparent outline-none pr-5 text-sm font-bold text-gray-700 dark:text-slate-200 cursor-pointer disabled:opacity-50 w-full sm:w-auto">
@@ -1122,26 +1121,26 @@ export default function Home() {
                   ))}
                 </div>
                 
-                <div className="flex flex-wrap gap-3 justify-end items-center mt-2 md:mt-0">
+                <div className="flex flex-wrap gap-3 justify-start sm:justify-end items-center w-full md:w-auto mt-3 md:mt-0">
                   
-                  <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold mr-2 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
+                  <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold w-full sm:w-auto justify-center sm:justify-start mb-2 sm:mb-0 mr-0 sm:mr-2 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
                     <span title="ยอดเข้าชม" className="flex items-center gap-1.5"><Eye className="w-5 h-5 text-blue-500" />{item.view_count || 0}</span>
                     <span className="w-px h-5 bg-slate-300 dark:bg-slate-600"></span>
                     <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5"><Download className="w-5 h-5 text-emerald-500" />{item.download_count || 0}</span>
                   </div>
 
                   {item.drive_url && (
-                    <a href={getPreviewUrl(item.drive_url)} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-3.5 py-2 rounded-lg transition-colors text-sm shadow-sm">
+                    <a href={getPreviewUrl(item.drive_url)} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-3.5 py-2 rounded-lg transition-colors text-sm shadow-sm">
                       <ExternalLink className="w-4 h-4" /> {t.viewOnline}
                     </a>
                   )}
                   {item.drive_url && (
-                    <a href={getDirectDownloadUrl(item.drive_url)} onClick={() => trackStat(item.id, 'download')} className="flex items-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
+                    <a href={getDirectDownloadUrl(item.drive_url)} onClick={() => trackStat(item.id, 'download')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
                       <Download className="w-4 h-4" /> {t.download}
                     </a>
                   )}
                   {item.tdc_url && (
-                    <a href={item.tdc_url} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex items-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-lg transition-colors shadow-sm text-sm">
+                    <a href={item.tdc_url} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-lg transition-colors shadow-sm text-sm">
                       <ExternalLink className="w-5 h-5" /> TDC
                     </a>
                   )}
@@ -1253,24 +1252,24 @@ export default function Home() {
 
             </div>
             
-            <div className="p-5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex flex-wrap justify-end items-center gap-3 relative">
+            <div className="p-5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex flex-wrap justify-center sm:justify-end items-center gap-3 relative">
               
-              <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold mr-auto pl-2 bg-white dark:bg-slate-900 px-5 py-2.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+              <div className="flex justify-center sm:justify-start items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold w-full lg:w-auto lg:mr-auto mb-2 lg:mb-0 pl-2 bg-white dark:bg-slate-900 px-5 py-2.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                  <span title="ยอดเข้าชม" className="flex items-center gap-1.5"><Eye className="w-5 h-5 text-blue-500" />{selectedThesis.view_count || 0}</span>
                  <span className="w-px h-5 bg-slate-300 dark:bg-slate-600"></span>
                  <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5"><Download className="w-5 h-5 text-emerald-500" />{selectedThesis.download_count || 0}</span>
               </div>
 
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <button 
                   onClick={() => setShowCitationModal(!showCitationModal)} 
-                  className="px-5 py-2.5 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 border bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600"
+                  className={`w-full sm:w-auto justify-center px-5 py-2.5 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 border bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600`}
                 >
                   <Quote className="w-5 h-5" /> {t.cite}
                 </button>
 
                 {showCitationModal && (
-                  <div className="absolute bottom-full right-0 mb-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-in fade-in zoom-in">
+                  <div className="absolute bottom-full right-0 mb-2 w-full sm:w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-in fade-in zoom-in">
                     <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">เลือกรูปแบบการอ้างอิง</p>
                     {['NBU', 'APA7', 'MLA9', 'Chicago', 'Vancouver', 'Harvard'].map((style) => (
                       <button 
@@ -1287,24 +1286,24 @@ export default function Home() {
 
               <button 
                 onClick={() => handleShare(selectedThesis)} 
-                className={`px-5 py-2.5 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 border ${copiedId === 'share' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600'}`}
+                className={`w-full sm:w-auto justify-center px-5 py-2.5 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 border ${copiedId === 'share' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600'}`}
               >
                 {copiedId === 'share' ? <CheckCircle2 className="w-5 h-5" /> : <Share2 className="w-5 h-5" />} 
                 {copiedId === 'share' ? t.copied : t.share}
               </button>
 
               {selectedThesis.drive_url && (
-                <a href={getPreviewUrl(selectedThesis.drive_url)} target="_blank" rel="noreferrer" onClick={() => trackStat(selectedThesis.id, 'view')} className="px-5 py-2.5 bg-white dark:bg-slate-700 hover:bg-slate-100 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-white font-bold rounded-xl transition-all shadow-sm flex items-center gap-2">
+                <a href={getPreviewUrl(selectedThesis.drive_url)} target="_blank" rel="noreferrer" onClick={() => trackStat(selectedThesis.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-3.5 py-2 rounded-lg transition-colors text-sm shadow-sm">
                   <ExternalLink className="w-5 h-5" /> {t.viewOnline}
                 </a>
               )}
               {selectedThesis.drive_url && (
-                <a href={getDirectDownloadUrl(selectedThesis.drive_url)} onClick={() => trackStat(selectedThesis.id, 'download')} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-2">
+                <a href={getDirectDownloadUrl(selectedThesis.drive_url)} onClick={() => trackStat(selectedThesis.id, 'download')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
                   <Download className="w-4 h-4" /> {t.download}
                 </a>
               )}
               {selectedThesis.tdc_url && (
-                <a href={selectedThesis.tdc_url} target="_blank" rel="noreferrer" onClick={() => trackStat(selectedThesis.id, 'view')} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-2">
+                <a href={selectedThesis.tdc_url} target="_blank" rel="noreferrer" onClick={() => trackStat(selectedThesis.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-lg transition-colors shadow-sm text-sm">
                   <ExternalLink className="w-5 h-5" /> TDC
                 </a>
               )}
@@ -1328,7 +1327,7 @@ export default function Home() {
             
             <div className="p-6 md:p-8 overflow-y-auto max-h-[70vh]">
               
-              <div className="flex justify-center gap-2 mb-6 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+              <div className="flex flex-col sm:flex-row justify-center gap-2 mb-6 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
                 <button onClick={() => setStatTimeframe('all')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${statTimeframe === 'all' ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.timeAll}</button>
                 <button onClick={() => setStatTimeframe('month')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${statTimeframe === 'month' ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.timeMonth}</button>
                 <button onClick={() => setStatTimeframe('year')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${statTimeframe === 'year' ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.timeYear}</button>
@@ -1343,27 +1342,32 @@ export default function Home() {
 
               <div>
                 <div className="flex items-center gap-4 mb-4 border-b border-slate-200 dark:border-slate-700">
-                  <button onClick={() => setStatAction('download')} className={`pb-3 text-sm font-bold px-4 border-b-2 transition-colors ${statAction === 'download' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
-                    <span className="flex items-center gap-2"><Download className="w-4 h-4" /> {t.topDownloads}</span>
+                  <button onClick={() => setStatAction('download')} className={`pb-3 text-sm font-bold px-4 border-b-2 transition-colors flex-1 sm:flex-none ${statAction === 'download' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                    <span className="flex items-center justify-center gap-2"><Download className="w-4 h-4" /> {t.topDownloads}</span>
                   </button>
-                  <button onClick={() => setStatAction('view')} className={`pb-3 text-sm font-bold px-4 border-b-2 transition-colors ${statAction === 'view' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
-                    <span className="flex items-center gap-2"><Eye className="w-4 h-4" /> {t.topViews}</span>
+                  <button onClick={() => setStatAction('view')} className={`pb-3 text-sm font-bold px-4 border-b-2 transition-colors flex-1 sm:flex-none ${statAction === 'view' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                    <span className="flex items-center justify-center gap-2"><Eye className="w-4 h-4" /> {t.topViews}</span>
                   </button>
                 </div>
 
                 <div className="space-y-3">
                   {(statAction === 'download' ? topDownloads : topViews).length > 0 ? (
                     (statAction === 'download' ? topDownloads : topViews).map((item, index) => (
-                    <div key={item.id} className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800/50 hover:border-blue-200 transition-colors">
-                      <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-sm flex-shrink-0 ${index < 3 ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'}`}>
-                        {index + 1}
+                    <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800/50 hover:border-blue-200 transition-colors">
+                      <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-sm flex-shrink-0 ${index < 3 ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'}`}>
+                          {index + 1}
+                        </div>
+                        <div className="flex-1 min-w-0 sm:hidden">
+                          <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{item.title_th}</p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 hidden sm:block">
                         <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{item.title_th}</p>
                         <p className="text-xs text-slate-500 truncate">{item.author}</p>
                       </div>
-                      <div className={`font-black px-3 py-1.5 rounded-lg flex-shrink-0 ${statAction === 'download' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'}`}>
-                        {item.total_count}
+                      <div className={`font-black px-3 py-1.5 rounded-lg w-full sm:w-auto text-center sm:text-left flex-shrink-0 ${statAction === 'download' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'}`}>
+                        {item.total_count} {t.times}
                       </div>
                     </div>
                   ))) : (
