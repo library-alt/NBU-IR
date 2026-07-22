@@ -76,7 +76,7 @@ const DICT = {
     addSearchField: "Add Field",
     quickSelectTitle: "Recommended Majors in the System (Quick Select):",
     found: "Found",
-    items: "items",
+    items: "titles",
     showPerPage: "Items per page",
     searchInResults: "Search within results...",
     filterBtn: "Filters",
@@ -138,7 +138,7 @@ const DICT = {
     addSearchField: "添加搜索字段",
     quickSelectTitle: "系统中的推荐专业 (快速选择):",
     found: "找到",
-    items: "条记录",
+    items: "标题",
     showPerPage: "每页显示",
     searchInResults: "在结果中搜索...",
     filterBtn: "筛选器",
@@ -218,7 +218,6 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   
-  // Stats State
   const [statTimeframe, setStatTimeframe] = useState<'all'|'month'|'year'>('all');
   const [statAction, setStatAction] = useState<'download'|'view'>('download');
   const [topDownloads, setTopDownloads] = useState<any[]>([]);
@@ -420,7 +419,8 @@ export default function Home() {
   const trackStat = async (id: any, type: 'view' | 'download') => {
     if (!id) return;
     
-    setAllResults(prev => prev.map(item => {
+    // ⭐️ เพิ่มการระบุ Type อย่างชัดเจนป้องกัน Vercel Error
+    setAllResults((prev: any[]) => prev.map((item: any) => {
       if (item.id == id) {
         return { ...item, [type === 'view' ? 'view_count' : 'download_count']: (item[type === 'view' ? 'view_count' : 'download_count'] || 0) + 1 };
       }
@@ -428,7 +428,8 @@ export default function Home() {
     }));
 
     if (selectedThesis && selectedThesis.id == id) {
-      setSelectedThesis(prev => prev ? {
+      // ⭐️ เพิ่มการระบุ Type อย่างชัดเจนป้องกัน Vercel Error
+      setSelectedThesis((prev: any) => prev ? {
         ...prev,
         [type === 'view' ? 'view_count' : 'download_count']: (prev[type === 'view' ? 'view_count' : 'download_count'] || 0) + 1
       } : null);
@@ -563,7 +564,7 @@ export default function Home() {
   );
 
   const handleCheckboxToggle = (value: string, list: string[], setList: Function) => {
-    if (list.includes(value)) setList(list.filter(item => item !== value));
+    if (list.includes(value)) setList(list.filter((item: string) => item !== value));
     else setList([...list, value]);
   };
 
@@ -726,7 +727,7 @@ export default function Home() {
           )}
         </div>
 
-        <button onClick={() => setFontSizeIndex((prev) => (prev + 1) % 3)} className="flex items-center justify-center w-10 h-10 rounded-full border shadow-sm transition-all duration-300 bg-white border-slate-300 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title="ปรับขนาดตัวอักษร">
+        <button onClick={() => setFontSizeIndex((prev: number) => (prev + 1) % 3)} className="flex items-center justify-center w-10 h-10 rounded-full border shadow-sm transition-all duration-300 bg-white border-slate-300 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title="ปรับขนาดตัวอักษร">
           <Type className="w-5 h-5" />
         </button>
         <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className="flex items-center justify-center w-10 h-10 rounded-full border shadow-md transition-all duration-300 bg-white border-slate-300 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title="สลับโหมดสี">
@@ -859,7 +860,7 @@ export default function Home() {
                     >
                       <span className="text-sm md:text-base font-bold">{displayMajor}</span>
                       <span className="text-xs md:text-sm font-semibold mt-1 text-slate-500 dark:text-slate-400 opacity-80">
-                        {lang === 'th' ? `( จำนวน ${item.count} ชื่อเรื่อง )` : `( ${item.count} titles )`}
+                        {lang === 'th' ? `( จำนวน ${item.count} ชื่อเรื่อง )` : `( ${item.count} ${t.items} )`}
                       </span>
                     </button>
                   );
@@ -879,7 +880,6 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* ⭐️ แก้บั๊ก UI: หักบรรทัดกล่องค้นหาลงมาให้สวยงาม */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full">
                 <div className="flex items-center gap-2 pl-0 md:pl-4 md:border-l border-slate-300 dark:border-slate-700 h-6 shrink-0">
                   <span className="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">{t.showPerPage}</span>
@@ -1155,7 +1155,7 @@ export default function Home() {
             <div className="flex justify-end mt-8 pt-6 border-t border-gray-200 dark:border-slate-800">
               <div className="flex items-center gap-1">
                 <button 
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => setCurrentPage((p: number) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                   className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
                 >
@@ -1168,7 +1168,7 @@ export default function Home() {
                 </div>
 
                 <button 
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => setCurrentPage((p: number) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                   className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
                 >
