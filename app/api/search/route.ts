@@ -34,7 +34,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ thesis: data });
     }
 
-    // ⭐️ ระบบดึงสถิติแยกตามช่วงเวลา (All-time, รายเดือน, รายปี)
     if (body.getStats) {
       const { timeframe } = body; 
       let topDownloads = [];
@@ -47,8 +46,8 @@ export async function POST(req: Request) {
         const { data: sumData } = await supabase.from('theses').select('view_count');
         
         totalVisits = sumData?.reduce((acc, curr) => acc + (curr.view_count || 0), 0) || 0;
-        topDownloads = dls?.map(d => ({ ...d, total_count: d.download_count })) || [];
-        topViews = vws?.map(v => ({ ...v, total_count: v.view_count })) || [];
+        topDownloads = dls?.map((d: any) => ({ ...d, total_count: d.download_count })) || [];
+        topViews = vws?.map((v: any) => ({ ...v, total_count: v.view_count })) || [];
       } else {
         const days = timeframe === 'month' ? 30 : 365;
         const { data: dls } = await supabase.rpc('get_top_stats', { action_filter: 'download', days_ago: days });
@@ -70,14 +69,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ topDownloads, topViews, totalVisits });
     }
 
-    // ⭐️ บันทึกสถิติลงตารางหลัก และตาราง usage_logs
     if (body.trackStat && body.id && body.type) {
       const fieldToUpdate = body.type === 'view' ? 'view_count' : 'download_count';
       
       const { data: currentData } = await supabase.from('theses').select(fieldToUpdate).eq('id', body.id).single();
         
       if (currentData) {
-        await supabase.from('theses').update({ [fieldToUpdate]: (currentData[fieldToUpdate] || 0) + 1 }).eq('id', body.id);
+        // ⭐️ แก้ไข Error Vercel: ใช้ (currentData as any) เพื่อข้ามการตรวจ Type ที่เข้มงวด
+        const currentCount = (currentData as any)[fieldToUpdate] || 0;
+        await supabase.from('theses').update({ [fieldToUpdate]: currentCount + 1 }).eq('id', body.id);
       }
       
       await supabase.from('usage_logs').insert({ thesis_id: body.id, action_type: body.type });
