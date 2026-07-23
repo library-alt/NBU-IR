@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
-import { Search, Sparkles, ChevronDown, Moon, Sun, Plus, Minus, Loader2, User, Download, ExternalLink, Filter, X, BookOpen, ArrowUpDown, Type, GraduationCap, Calendar, Tag, ChevronLeft, ChevronRight, Eye, RotateCcw, Quote, CheckCircle2, Share2, Menu, BarChart2, Home as HomeIcon } from "lucide-react";
+import { Search, Sparkles, ChevronDown, Moon, Sun, Plus, Minus, Loader2, User, Download, ExternalLink, Filter, X, BookOpen, ArrowUpDown, Type, GraduationCap, Calendar, Tag, ChevronLeft, ChevronRight, Eye, RotateCcw, Quote, CheckCircle2, Share2, Menu, BarChart2, Home as HomeIcon, Layers } from "lucide-react";
 import { useTheme } from "next-themes";
 
 type Lang = 'th' | 'en' | 'ch';
@@ -12,7 +12,9 @@ const DICT = {
     searchPlaceholder: "พิมพ์คำค้นหา...",
     advancedSearch: "ค้นหาขั้นสูง",
     addSearchField: "เพิ่มช่องค้นหา",
-    quickSelectTitle: "แนะนำหลักสูตรและสาขาวิชาที่มีอยู่ในระบบ (Quick Select):",
+    quickSelectTitle: "แนะนำหลักสูตรและสาขาวิชาที่มีอยู่ในระบบ:",
+    showMajors: "แสดงหลักสูตรทั้งหมด",
+    hideMajors: "ซ่อนหลักสูตร",
     found: "พบ",
     items: "รายการ",
     showPerPage: "แสดงหน้าละ",
@@ -36,6 +38,7 @@ const DICT = {
     noYear: "ไม่มีข้อมูลปี",
     accuracy: "ความแม่นยำ",
     viewOnline: "ดูออนไลน์",
+    viewOnlineMobile: "ออนไลน์",
     download: "ดาวน์โหลด",
     cite: "อ้างอิง",
     share: "แชร์ลิงก์",
@@ -61,6 +64,10 @@ const DICT = {
     timeMonth: "รายเดือน",
     timeYear: "รายปี",
     times: "ครั้ง",
+    monthNames: ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"],
+    fromMonth: "ตั้งแต่เดือน",
+    toMonth: "ถึงเดือน",
+    year: "ปี พ.ศ.",
     fields: {
       all: "ทั้งหมดทุกเขตข้อมูล",
       title: "ชื่อเรื่อง",
@@ -74,7 +81,9 @@ const DICT = {
     searchPlaceholder: "Type to search...",
     advancedSearch: "Advanced Search",
     addSearchField: "Add Field",
-    quickSelectTitle: "Recommended Majors in the System (Quick Select):",
+    quickSelectTitle: "Recommended Majors in the System:",
+    showMajors: "Show All Majors",
+    hideMajors: "Hide Majors",
     found: "Found",
     items: "titles",
     showPerPage: "Items per page",
@@ -98,6 +107,7 @@ const DICT = {
     noYear: "No year data",
     accuracy: "Accuracy",
     viewOnline: "View Online",
+    viewOnlineMobile: "Online",
     download: "Download",
     cite: "Cite",
     share: "Share",
@@ -123,6 +133,10 @@ const DICT = {
     timeMonth: "Monthly",
     timeYear: "Yearly",
     times: "times",
+    monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    fromMonth: "From Month",
+    toMonth: "To Month",
+    year: "Year (B.E.)",
     fields: {
       all: "All Fields",
       title: "Title",
@@ -136,7 +150,9 @@ const DICT = {
     searchPlaceholder: "输入搜索内容...",
     advancedSearch: "高级搜索",
     addSearchField: "添加搜索字段",
-    quickSelectTitle: "系统中的推荐专业 (快速选择):",
+    quickSelectTitle: "系统中的推荐专业:",
+    showMajors: "显示所有专业",
+    hideMajors: "隐藏专业",
     found: "找到",
     items: "标题",
     showPerPage: "每页显示",
@@ -160,6 +176,7 @@ const DICT = {
     noYear: "无年份数据",
     accuracy: "准确率",
     viewOnline: "在线查看",
+    viewOnlineMobile: "在线的",
     download: "下载",
     cite: "引用",
     share: "分享",
@@ -185,6 +202,10 @@ const DICT = {
     timeMonth: "每月",
     timeYear: "每年",
     times: "次",
+    monthNames: ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"],
+    fromMonth: "从月份",
+    toMonth: "到月份",
+    year: "年份",
     fields: {
       all: "所有字段",
       title: "标题",
@@ -216,13 +237,22 @@ export default function Home() {
   const langMenuRef = useRef<HTMLDivElement>(null);
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [showStatsModal, setShowStatsModal] = useState(false);
   
+  // ⭐️ Stats Filter State
+  const [showStatsModal, setShowStatsModal] = useState(false);
   const [statTimeframe, setStatTimeframe] = useState<'all'|'month'|'year'>('all');
   const [statAction, setStatAction] = useState<'download'|'view'>('download');
+  
+  const d = new Date();
+  const currentYearBE = d.getFullYear() + 543;
+  const [statStartMonth, setStatStartMonth] = useState(d.getMonth() + 1);
+  const [statEndMonth, setStatEndMonth] = useState(d.getMonth() + 1);
+  const [statYear, setStatYear] = useState(currentYearBE);
+
   const [topDownloads, setTopDownloads] = useState<any[]>([]);
   const [topViews, setTopViews] = useState<any[]>([]);
   const [siteVisits, setSiteVisits] = useState(0);
+  const [isStatsLoading, setIsStatsLoading] = useState(false);
 
   const t = DICT[lang];
 
@@ -238,7 +268,6 @@ export default function Home() {
   const [searchMode, setSearchMode] = useState("Keyword");
   const [query, setQuery] = useState("");
   const [searchField, setSearchField] = useState("all");
-  
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [extraQueries, setExtraQueries] = useState<{text: string, operator: string, field: string}[]>([]);
 
@@ -267,6 +296,8 @@ export default function Home() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showCitationModal, setShowCitationModal] = useState(false);
 
+  // ⭐️ 3D Quick Select Toggle
+  const [showMajorsList, setShowMajorsList] = useState(false);
   const [dynamicMajors, setDynamicMajors] = useState<{major: string, count: number}[]>([]);
 
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -293,12 +324,28 @@ export default function Home() {
     }
   };
 
-  const loadStats = async (timeframe: 'all'|'month'|'year') => {
+  const loadStats = async () => {
+    setIsStatsLoading(true);
+    let startDate = null;
+    let endDate = null;
+
+    if (statTimeframe === 'month') {
+      const start = new Date(statYear - 543, statStartMonth - 1, 1);
+      const end = new Date(statYear - 543, statEndMonth, 0, 23, 59, 59); // สิ้นเดือน
+      startDate = start.toISOString();
+      endDate = end.toISOString();
+    } else if (statTimeframe === 'year') {
+      const start = new Date(statYear - 543, 0, 1);
+      const end = new Date(statYear - 543, 11, 31, 23, 59, 59);
+      startDate = start.toISOString();
+      endDate = end.toISOString();
+    }
+
     try {
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ getStats: true, timeframe })
+        body: JSON.stringify({ getStats: true, timeframe: statTimeframe, startDate, endDate })
       });
       const data = await res.json();
       if (data.topDownloads) setTopDownloads(data.topDownloads);
@@ -306,14 +353,16 @@ export default function Home() {
       if (data.totalVisits !== undefined) setSiteVisits(data.totalVisits);
     } catch (e) {
       console.error("Failed to load stats:", e);
+    } finally {
+      setIsStatsLoading(false);
     }
   };
 
   useEffect(() => {
     if (showStatsModal) {
-      loadStats(statTimeframe);
+      loadStats();
     }
-  }, [statTimeframe, showStatsModal]);
+  }, [statTimeframe, showStatsModal, statStartMonth, statEndMonth, statYear]);
 
   useEffect(() => { 
     setMounted(true); 
@@ -671,6 +720,15 @@ export default function Home() {
   const sliderMinPos = globalMaxYear > globalMinYear ? ((currentYearMin - globalMinYear) / (globalMaxYear - globalMinYear)) * 100 : 0;
   const sliderMaxPos = globalMaxYear > globalMinYear ? ((currentYearMax - globalMinYear) / (globalMaxYear - globalMinYear)) * 100 : 100;
 
+  // ฟังก์ชันช่วยสร้าง Array ตัวเลขปี พ.ศ.
+  const generateYearsBE = (startOffset: number) => {
+    const years = [];
+    for (let i = 0; i < startOffset; i++) {
+      years.push(currentYearBE - i);
+    }
+    return years;
+  };
+
   if (!mounted) return null;
   const isDark = resolvedTheme === 'dark';
 
@@ -744,42 +802,48 @@ export default function Home() {
 
           <form onSubmit={handleSearch} className="relative z-10 flex flex-col bg-white border-2 border-indigo-100 dark:bg-slate-900 dark:border-slate-700 rounded-3xl shadow-xl transition-all duration-300 focus-within:border-indigo-400 dark:focus-within:border-indigo-500">
             
-            <div className="flex flex-col sm:flex-row items-center px-4 py-3 w-full gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  if(!showAdvanced && extraQueries.length === 0) setExtraQueries([{text: "", operator: "AND", field: "all"}]);
-                  setShowAdvanced(!showAdvanced);
-                  setSearchMode("Keyword"); 
-                }}
-                className={`p-2 rounded-full transition-all flex-shrink-0 ${showAdvanced ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-gray-400 hover:text-black dark:hover:text-white'}`}
-                title={t.advancedSearch}
-              >
-                <Plus className={`w-4 h-4 transition-transform duration-300 ${showAdvanced ? 'rotate-45' : ''}`} />
-              </button>
-
-              <div className="relative flex-shrink-0 border-r border-gray-200 dark:border-slate-700 pr-2">
-                <select
-                  value={searchField}
-                  onChange={(e) => setSearchField(e.target.value)}
-                  className="appearance-none bg-indigo-50 dark:bg-indigo-900/30 outline-none pr-6 pl-2 py-2 text-sm font-bold text-indigo-700 dark:text-indigo-300 cursor-pointer max-w-[150px] truncate"
-                >
-                  {SEARCH_FIELDS.map(f => <option key={f.value} value={f.value} className="bg-white dark:bg-slate-900">{f.label}</option>)}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-indigo-500 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+            {/* ⭐️ แก้ UI Search Box บนมือถือ ให้ input อยู่บน ปุ่มอยู่ล่าง */}
+            <div className="flex flex-col sm:flex-row p-3 sm:p-3 gap-3 w-full">
+              
+              <div className="order-1 sm:order-2 flex-1 relative w-full">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t.searchPlaceholder}
+                  disabled={showAdvanced}
+                  className={`bg-slate-50 sm:bg-transparent dark:bg-slate-800 sm:dark:bg-transparent border border-slate-200 sm:border-none dark:border-slate-700 rounded-xl sm:rounded-none outline-none w-full px-4 py-3 sm:py-2 transition-colors ${showAdvanced ? 'text-gray-400 dark:text-gray-500' : 'text-slate-900 dark:text-white placeholder-slate-400'}`}
+                />
               </div>
 
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t.searchPlaceholder}
-                disabled={showAdvanced}
-                className={`flex-1 bg-transparent border-none outline-none w-full px-2 ${showAdvanced ? 'text-gray-400 dark:text-gray-500' : 'text-slate-900 dark:text-white placeholder-slate-400'}`}
-              />
-              
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0 sm:ml-2 sm:pl-3 sm:border-l border-gray-300 dark:border-slate-700 flex-shrink-0">
-                <div className="relative hidden sm:block mr-1">
+              <div className="order-2 sm:order-1 flex items-center justify-start gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if(!showAdvanced && extraQueries.length === 0) setExtraQueries([{text: "", operator: "AND", field: "all"}]);
+                    setShowAdvanced(!showAdvanced);
+                    setSearchMode("Keyword"); 
+                  }}
+                  className={`p-2 rounded-full transition-all flex-shrink-0 ${showAdvanced ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-gray-400 hover:text-black dark:hover:text-white'}`}
+                  title={t.advancedSearch}
+                >
+                  <Plus className={`w-5 h-5 sm:w-4 sm:h-4 transition-transform duration-300 ${showAdvanced ? 'rotate-45' : ''}`} />
+                </button>
+
+                <div className="relative flex-1 sm:flex-none sm:border-r border-gray-200 dark:border-slate-700 sm:pr-2">
+                  <select
+                    value={searchField}
+                    onChange={(e) => setSearchField(e.target.value)}
+                    className="w-full sm:w-auto appearance-none bg-indigo-50 dark:bg-indigo-900/30 rounded-xl sm:rounded-none outline-none pr-8 pl-3 py-2 text-sm font-bold text-indigo-700 dark:text-indigo-300 cursor-pointer truncate"
+                  >
+                    {SEARCH_FIELDS.map(f => <option key={f.value} value={f.value} className="bg-white dark:bg-slate-900">{f.label}</option>)}
+                  </select>
+                  <ChevronDown className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-indigo-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="order-3 sm:order-3 flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto sm:border-l border-gray-300 dark:border-slate-700 sm:pl-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
+                <div className="relative flex-1 sm:flex-none">
                   <select
                     value={searchMode}
                     onChange={(e) => {
@@ -787,21 +851,22 @@ export default function Home() {
                       if(e.target.value === "Semantic") setShowAdvanced(false);
                     }}
                     disabled={showAdvanced}
-                    className={`appearance-none outline-none pr-7 pl-3 py-2.5 text-sm font-bold rounded-xl cursor-pointer transition-colors ${showAdvanced ? 'bg-slate-50 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500' : 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-800/50 hover:bg-purple-100 dark:hover:bg-purple-900/50'}`}
+                    className={`w-full sm:w-auto appearance-none outline-none pr-8 pl-3 py-3 sm:py-2.5 text-sm font-bold rounded-xl cursor-pointer transition-colors ${showAdvanced ? 'bg-slate-50 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500' : 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-800/50 hover:bg-purple-100 dark:hover:bg-purple-900/50'}`}
                   >
                     <option value="Keyword" className="bg-white text-black dark:bg-slate-900 dark:text-white">Keyword</option>
                     <option value="Semantic" className="bg-white text-black dark:bg-slate-900 dark:text-white">Semantic (AI)</option>
                   </select>
-                  <ChevronDown className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${showAdvanced ? 'text-slate-300 dark:text-slate-600' : 'text-purple-500'}`} />
+                  <ChevronDown className={`w-4 h-4 sm:w-3.5 sm:h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${showAdvanced ? 'text-slate-300 dark:text-slate-600' : 'text-purple-500'}`} />
                 </div>
                 
-                <button type="button" onClick={handleReset} title="ล้างการค้นหา (Reset)" className="p-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-gray-600 dark:text-gray-300 transition-all shadow-sm">
-                  <RotateCcw className="w-5 h-5" />
-                </button>
-                
-                <button type="submit" disabled={isLoading} className="p-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-white disabled:opacity-50 transition-all shadow-md">
-                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-                </button>
+                <div className="flex gap-2">
+                  <button type="button" onClick={handleReset} title="ล้างการค้นหา (Reset)" className="p-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-gray-600 dark:text-gray-300 transition-all shadow-sm">
+                    <RotateCcw className="w-5 h-5 sm:w-5 sm:h-5" />
+                  </button>
+                  <button type="submit" disabled={isLoading} className="p-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-white disabled:opacity-50 transition-all shadow-md">
+                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5 sm:w-5 sm:h-5" />}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -835,34 +900,45 @@ export default function Home() {
             </div>
           </form>
 
+          {/* ⭐️ ปุ่ม 3 มิติ สำหรับ Toggle ซ่อน/แสดง สาขาวิชา */}
           {dynamicMajors.length > 0 && (
-            <div className="mt-6 w-full px-4">
-              <div className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3.5 flex items-center gap-1.5 justify-center">
-                <Tag className="w-4 h-4" /> {t.quickSelectTitle}
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {dynamicMajors.map(item => {
-                  const isSelected = query === item.major && searchField === "major";
-                  const displayMajor = (lang === 'en' || lang === 'ch') && MAJOR_MAPPING[item.major]?.en ? MAJOR_MAPPING[item.major].en : item.major;
-                  
-                  return (
-                    <button 
-                      key={item.major}
-                      onClick={() => handleTagClick("major", item.major, false)}
-                      className={`w-full h-full min-h-[64px] px-5 py-3.5 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center leading-snug
-                        ${isSelected 
-                          ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-2 border-blue-500 dark:border-blue-500 shadow-inner scale-[0.98]" 
-                          : "bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 shadow-md hover:-translate-y-1 hover:scale-[1.02] hover:bg-white dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 dark:hover:shadow-blue-500/20 active:translate-y-0 active:scale-100"
-                        }`}
-                    >
-                      <span className="text-sm md:text-base font-bold">{displayMajor}</span>
-                      <span className="text-xs md:text-sm font-semibold mt-1 text-slate-500 dark:text-slate-400 opacity-80">
-                        {lang === 'th' ? `( จำนวน ${item.count} ชื่อเรื่อง )` : `( ${item.count} ${t.items} )`}
-                      </span>
-                    </button>
-                  );
-                })}
+            <div className="mt-8 w-full px-4 flex flex-col items-center">
+              <button 
+                onClick={() => setShowMajorsList(!showMajorsList)}
+                className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-8 rounded-2xl shadow-[0_6px_0_#1e3a8a] active:shadow-[0_0px_0_#1e3a8a] active:translate-y-[6px] transition-all duration-150 flex items-center gap-3 text-sm md:text-base tracking-wide z-10"
+              >
+                <Layers className="w-5 h-5" /> 
+                {showMajorsList ? t.hideMajors : t.showMajors}
+              </button>
+
+              <div className={`w-full overflow-hidden transition-all duration-500 ease-in-out ${showMajorsList ? 'max-h-[2000px] opacity-100 mt-6' : 'max-h-0 opacity-0 mt-0'}`}>
+                <div className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-1.5 justify-center">
+                  <Tag className="w-4 h-4" /> {t.quickSelectTitle}
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {dynamicMajors.map(item => {
+                    const isSelected = query === item.major && searchField === "major";
+                    const displayMajor = (lang === 'en' || lang === 'ch') && MAJOR_MAPPING[item.major]?.en ? MAJOR_MAPPING[item.major].en : item.major;
+                    
+                    return (
+                      <button 
+                        key={item.major}
+                        onClick={() => handleTagClick("major", item.major, false)}
+                        className={`w-full h-full min-h-[64px] px-5 py-3.5 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center leading-snug
+                          ${isSelected 
+                            ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-2 border-blue-500 dark:border-blue-500 shadow-inner scale-[0.98]" 
+                            : "bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 shadow-sm hover:-translate-y-1 hover:scale-[1.02] hover:bg-white dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md hover:shadow-blue-500/10 dark:hover:shadow-blue-500/20 active:translate-y-0 active:scale-100"
+                          }`}
+                      >
+                        <span className="text-sm md:text-base font-bold">{displayMajor}</span>
+                        <span className="text-xs md:text-sm font-semibold mt-1 text-slate-500 dark:text-slate-400 opacity-80">
+                          {lang === 'th' ? `( จำนวน ${item.count} ชื่อเรื่อง )` : `( ${item.count} ${t.items} )`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -871,16 +947,15 @@ export default function Home() {
         {hasSearched && !isLoading && allResults.length > 0 && (
           <div className="w-full flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 mb-5 px-4 py-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800">
             
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1">
-              <div className="flex flex-row items-center justify-between w-full sm:w-auto">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 flex-1">
+              <div className="flex flex-row items-center justify-between w-full md:w-auto">
                 <p className="font-semibold text-slate-500 dark:text-gray-400 whitespace-nowrap">
                   {t.found} <span className="text-blue-600 dark:text-blue-400 font-bold text-lg">{filteredAndSortedResults.length}</span> {t.items}
                 </p>
               </div>
 
-              {/* ⭐️ แก้บั๊ก UI: ขยับกล่อง Items Per Page ขึ้นบรรทัดใหม่เมื่อจอเล็ก และไม่ทับ Search */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full">
-                <div className="flex items-center gap-2 pl-0 sm:pl-4 sm:border-l border-slate-300 dark:border-slate-700 h-6 shrink-0">
+                <div className="flex items-center gap-2 pl-0 md:pl-4 md:border-l border-slate-300 dark:border-slate-700 h-6 shrink-0">
                   <span className="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">{t.showPerPage}</span>
                   <select 
                     value={itemsPerPage} 
@@ -1131,12 +1206,12 @@ export default function Home() {
 
                   {item.drive_url && (
                     <a href={getPreviewUrl(item.drive_url)} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-3.5 py-2 rounded-lg transition-colors text-sm shadow-sm">
-                      <ExternalLink className="w-4 h-4" /> {t.viewOnline}
+                      <ExternalLink className="w-4 h-4" /> <span className="hidden sm:inline">{t.viewOnline}</span><span className="sm:hidden">{t.viewOnlineMobile}</span>
                     </a>
                   )}
                   {item.drive_url && (
                     <a href={getDirectDownloadUrl(item.drive_url)} onClick={() => trackStat(item.id, 'download')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
-                      <Download className="w-4 h-4" /> {t.download}
+                      <Download className="w-4 h-4" /> <span className="hidden sm:inline">{t.download}</span>
                     </a>
                   )}
                   {item.tdc_url && (
@@ -1252,61 +1327,64 @@ export default function Home() {
 
             </div>
             
-            <div className="p-5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex flex-wrap justify-center sm:justify-end items-center gap-3 relative">
+            {/* ⭐️ แก้ UI Modal ปุ่มด้านล่าง สำหรับมือถือ ให้จัดเรียงสวยงาม */}
+            <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-3 relative justify-center sm:justify-between">
               
-              <div className="flex justify-center sm:justify-start items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold w-full lg:w-auto lg:mr-auto mb-2 lg:mb-0 pl-2 bg-white dark:bg-slate-900 px-5 py-2.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+              <div className="flex justify-center items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold w-full sm:w-auto px-4 py-2.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
                  <span title="ยอดเข้าชม" className="flex items-center gap-1.5"><Eye className="w-5 h-5 text-blue-500" />{selectedThesis.view_count || 0}</span>
                  <span className="w-px h-5 bg-slate-300 dark:bg-slate-600"></span>
                  <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5"><Download className="w-5 h-5 text-emerald-500" />{selectedThesis.download_count || 0}</span>
               </div>
 
-              <div className="relative w-full sm:w-auto">
+              <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto justify-center">
+                <div className="relative flex-1 sm:flex-none">
+                  <button 
+                    onClick={() => setShowCitationModal(!showCitationModal)} 
+                    className={`w-full sm:w-auto justify-center px-4 py-2.5 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 border bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600`}
+                  >
+                    <Quote className="w-5 h-5" /> <span className="hidden sm:inline">{t.cite}</span>
+                  </button>
+
+                  {showCitationModal && (
+                    <div className="absolute bottom-full right-0 mb-2 w-48 sm:w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-in fade-in zoom-in">
+                      <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">เลือกรูปแบบการอ้างอิง</p>
+                      {['NBU', 'APA7', 'MLA9', 'Chicago', 'Vancouver', 'Harvard'].map((style) => (
+                        <button 
+                          key={style}
+                          onClick={() => copyCitation(selectedThesis, style)}
+                          className={`w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center justify-between ${copiedId === `cite-${style}` ? 'bg-green-50 text-green-600 dark:bg-green-900/30' : 'hover:bg-blue-50 text-slate-700 dark:text-slate-300 dark:hover:bg-blue-900/30 hover:text-blue-600'}`}
+                        >
+                          {style} {copiedId === `cite-${style}` && <CheckCircle2 className="w-4 h-4" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <button 
-                  onClick={() => setShowCitationModal(!showCitationModal)} 
-                  className={`w-full sm:w-auto justify-center px-5 py-2.5 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 border bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600`}
+                  onClick={() => handleShare(selectedThesis)} 
+                  className={`flex-1 sm:flex-none justify-center px-4 py-2.5 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 border ${copiedId === 'share' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600'}`}
                 >
-                  <Quote className="w-5 h-5" /> {t.cite}
+                  {copiedId === 'share' ? <CheckCircle2 className="w-5 h-5" /> : <Share2 className="w-5 h-5" />} 
+                  <span className="hidden sm:inline">{t.share}</span>
                 </button>
 
-                {showCitationModal && (
-                  <div className="absolute bottom-full right-0 mb-2 w-full sm:w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-in fade-in zoom-in">
-                    <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">เลือกรูปแบบการอ้างอิง</p>
-                    {['NBU', 'APA7', 'MLA9', 'Chicago', 'Vancouver', 'Harvard'].map((style) => (
-                      <button 
-                        key={style}
-                        onClick={() => copyCitation(selectedThesis, style)}
-                        className={`w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center justify-between ${copiedId === `cite-${style}` ? 'bg-green-50 text-green-600 dark:bg-green-900/30' : 'hover:bg-blue-50 text-slate-700 dark:text-slate-300 dark:hover:bg-blue-900/30 hover:text-blue-600'}`}
-                      >
-                        {style} {copiedId === `cite-${style}` && <CheckCircle2 className="w-4 h-4" />}
-                      </button>
-                    ))}
-                  </div>
+                {selectedThesis.drive_url && (
+                  <a href={getPreviewUrl(selectedThesis.drive_url)} target="_blank" rel="noreferrer" onClick={() => trackStat(selectedThesis.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-4 py-2.5 rounded-xl transition-colors text-sm shadow-sm">
+                    <ExternalLink className="w-5 h-5" /> <span className="hidden sm:inline">{t.viewOnline}</span><span className="sm:hidden">{t.viewOnlineMobile}</span>
+                  </a>
+                )}
+                {selectedThesis.drive_url && (
+                  <a href={getDirectDownloadUrl(selectedThesis.drive_url)} onClick={() => trackStat(selectedThesis.id, 'download')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 rounded-xl transition-colors shadow-sm text-sm">
+                    <Download className="w-5 h-5" /> <span className="hidden sm:inline">{t.download}</span>
+                  </a>
+                )}
+                {selectedThesis.tdc_url && (
+                  <a href={selectedThesis.tdc_url} target="_blank" rel="noreferrer" onClick={() => trackStat(selectedThesis.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 rounded-xl transition-colors shadow-sm text-sm">
+                    <ExternalLink className="w-5 h-5" /> TDC
+                  </a>
                 )}
               </div>
-
-              <button 
-                onClick={() => handleShare(selectedThesis)} 
-                className={`w-full sm:w-auto justify-center px-5 py-2.5 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 border ${copiedId === 'share' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600'}`}
-              >
-                {copiedId === 'share' ? <CheckCircle2 className="w-5 h-5" /> : <Share2 className="w-5 h-5" />} 
-                {copiedId === 'share' ? t.copied : t.share}
-              </button>
-
-              {selectedThesis.drive_url && (
-                <a href={getPreviewUrl(selectedThesis.drive_url)} target="_blank" rel="noreferrer" onClick={() => trackStat(selectedThesis.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-3.5 py-2 rounded-lg transition-colors text-sm shadow-sm">
-                  <ExternalLink className="w-5 h-5" /> {t.viewOnline}
-                </a>
-              )}
-              {selectedThesis.drive_url && (
-                <a href={getDirectDownloadUrl(selectedThesis.drive_url)} onClick={() => trackStat(selectedThesis.id, 'download')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
-                  <Download className="w-4 h-4" /> {t.download}
-                </a>
-              )}
-              {selectedThesis.tdc_url && (
-                <a href={selectedThesis.tdc_url} target="_blank" rel="noreferrer" onClick={() => trackStat(selectedThesis.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-lg transition-colors shadow-sm text-sm">
-                  <ExternalLink className="w-5 h-5" /> TDC
-                </a>
-              )}
             </div>
 
           </div>
@@ -1333,14 +1411,51 @@ export default function Home() {
                 <button onClick={() => setStatTimeframe('year')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${statTimeframe === 'year' ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.timeYear}</button>
               </div>
 
-              <div className="mb-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/50 flex flex-col items-center justify-center text-center shadow-inner">
+              {/* ⭐️ Filter ตัวเลือกเดือนและปี */}
+              {statTimeframe === 'month' && (
+                <div className="flex flex-wrap items-center justify-center gap-3 mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">{t.fromMonth}</span>
+                    <select value={statStartMonth} onChange={(e) => setStatStartMonth(Number(e.target.value))} className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-bold outline-none">
+                      {t.monthNames.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">{t.toMonth}</span>
+                    <select value={statEndMonth} onChange={(e) => setStatEndMonth(Number(e.target.value))} className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-bold outline-none">
+                      {t.monthNames.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">{t.year}</span>
+                    <select value={statYear} onChange={(e) => setStatYear(Number(e.target.value))} className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-bold outline-none">
+                      {generateYearsBE(5).map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {statTimeframe === 'year' && (
+                <div className="flex flex-wrap items-center justify-center gap-3 mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">{t.year}</span>
+                    <select value={statYear} onChange={(e) => setStatYear(Number(e.target.value))} className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-bold outline-none">
+                      {generateYearsBE(5).map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div className="mb-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/50 flex flex-col items-center justify-center text-center shadow-inner relative">
+                 {isStatsLoading && <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm flex items-center justify-center rounded-2xl z-10"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}
                  <p className="text-slate-500 dark:text-slate-400 font-bold mb-2">{t.siteVisits}</p>
                  <div className="text-4xl md:text-5xl font-black text-blue-700 dark:text-blue-400 drop-shadow-sm">
                    {siteVisits.toLocaleString()} <span className="text-lg font-semibold text-slate-500">{t.times}</span>
                  </div>
               </div>
 
-              <div>
+              <div className="relative">
+                {isStatsLoading && <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm flex items-center justify-center rounded-2xl z-10"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}
                 <div className="flex items-center gap-4 mb-4 border-b border-slate-200 dark:border-slate-700">
                   <button onClick={() => setStatAction('download')} className={`pb-3 text-sm font-bold px-4 border-b-2 transition-colors flex-1 sm:flex-none ${statAction === 'download' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
                     <span className="flex items-center justify-center gap-2"><Download className="w-4 h-4" /> {t.topDownloads}</span>

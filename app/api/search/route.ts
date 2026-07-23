@@ -34,8 +34,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ thesis: data });
     }
 
+    // ⭐️ ระบบดึงสถิติแยกตามวันที่ (เดือน, ปี แบบเจาะจง)
     if (body.getStats) {
-      const { timeframe } = body; 
+      const { timeframe, startDate, endDate } = body; 
       let topDownloads = [];
       let topViews = [];
       let totalVisits = 0;
@@ -49,19 +50,18 @@ export async function POST(req: Request) {
         topDownloads = dls?.map((d: any) => ({ ...d, total_count: d.download_count })) || [];
         topViews = vws?.map((v: any) => ({ ...v, total_count: v.view_count })) || [];
       } else {
-        const days = timeframe === 'month' ? 30 : 365;
-        const { data: dls } = await supabase.rpc('get_top_stats', { action_filter: 'download', days_ago: days });
-        const { data: vws } = await supabase.rpc('get_top_stats', { action_filter: 'view', days_ago: days });
+        // ใช้ RPC ที่สร้างใหม่ เพื่อกรองตามวันที่เป๊ะๆ
+        const { data: dls } = await supabase.rpc('get_top_stats_by_date', { action_filter: 'download', start_date: startDate, end_date: endDate });
+        const { data: vws } = await supabase.rpc('get_top_stats_by_date', { action_filter: 'view', start_date: startDate, end_date: endDate });
         
         topDownloads = dls || [];
         topViews = vws || [];
 
-        const d = new Date();
-        d.setDate(d.getDate() - days);
         const { count } = await supabase.from('usage_logs')
             .select('*', { count: 'exact', head: true })
             .eq('action_type', 'view')
-            .gte('created_at', d.toISOString());
+            .gte('created_at', startDate)
+            .lte('created_at', endDate);
         
         totalVisits = count || 0;
       }
@@ -71,17 +71,12 @@ export async function POST(req: Request) {
 
     if (body.trackStat && body.id && body.type) {
       const fieldToUpdate = body.type === 'view' ? 'view_count' : 'download_count';
-      
       const { data: currentData } = await supabase.from('theses').select(fieldToUpdate).eq('id', body.id).single();
-        
       if (currentData) {
-        // ⭐️ แก้ไข Error Vercel: ใช้ (currentData as any) เพื่อข้ามการตรวจ Type ที่เข้มงวด
         const currentCount = (currentData as any)[fieldToUpdate] || 0;
         await supabase.from('theses').update({ [fieldToUpdate]: currentCount + 1 }).eq('id', body.id);
       }
-      
       await supabase.from('usage_logs').insert({ thesis_id: body.id, action_type: body.type });
-      
       return NextResponse.json({ success: true });
     }
 
@@ -89,17 +84,14 @@ export async function POST(req: Request) {
       let allData: any[] = [];
       let from = 0;
       const step = 1000;
-      
       while (true) {
         const { data, error } = await supabase.from('theses').select('major').range(from, from + step - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
-        
         allData = allData.concat(data);
         if (data.length < step) break;
         from += step;
       }
-      
       const majorCounts: Record<string, number> = {};
       allData.forEach((item: any) => {
         const m = (item.major || '').trim();
@@ -107,7 +99,6 @@ export async function POST(req: Request) {
           majorCounts[m] = (majorCounts[m] || 0) + 1;
         }
       });
-      
       const uniqueMajors = Object.entries(majorCounts)
         .map(([major, count]) => ({ major, count }))
         .sort((a, b) => a.major.localeCompare(b.major)); 
@@ -127,25 +118,14 @@ export async function POST(req: Request) {
     const SELECT_COLUMNS = 'id, title_th, title_en, author, publish_year, education_level, major, resource_type, abstract_th, abstract_en, advisor_1, advisor_2, advisor_3, tdc_url, drive_url, keywords, view_count, download_count, similarity';
 
     if (mode === 'Semantic') {
-      const embeddingResponse = await openai.embeddings.create({
-        model: 'text-embedding-3-small',
-        input: cleanRawQuery,
-      });
+      const embeddingResponse = await openai.embeddings.create({ model: 'text-embedding-3-small', input: cleanRawQuery });
       const embedding = embeddingResponse.data[0].embedding;
-
-      let rpcQuery = supabase.rpc('match_theses', {
-        query_embedding: embedding,
-        match_threshold: 0.05, 
-        match_count: 5000, 
-      });
-
+      let rpcQuery = supabase.rpc('match_theses', { query_embedding: embedding, match_threshold: 0.05, match_count: 5000 });
       const { data: rpcData, error: rpcError } = await rpcQuery;
       data = rpcData;
       error = rpcError;
-
     } else {
       let dbQuery = supabase.from('theses').select(SELECT_COLUMNS.replace(', similarity', ''));
-      
       if (isExactMatch && searchField === 'major' && cleanRawQuery) {
          const searchParts = cleanRawQuery.split(/\s+/);
          searchParts.forEach((part: string) => {
@@ -154,12 +134,10 @@ export async function POST(req: Request) {
       } else {
         if (cleanRawQuery) {
           const andGroups = cleanRawQuery.split(/\s+AND\s+/i);
-
           andGroups.forEach((group: string) => {
             let cleanGroup = group.replace(/^\(|\)$/g, '').trim();
             const orTerms = cleanGroup.split(/\s+OR\s+/i);
             let orConditions: string[] = [];
-
             orTerms.forEach((term: string) => {
               const cleanTerm = term.trim();
               if (cleanTerm) {
@@ -167,19 +145,14 @@ export async function POST(req: Request) {
                 if (condition) orConditions.push(condition);
               }
             });
-
-            if (orConditions.length > 0) {
-              dbQuery = dbQuery.or(orConditions.join(','));
-            }
+            if (orConditions.length > 0) dbQuery = dbQuery.or(orConditions.join(','));
           });
         }
-
         if (extraQueries && extraQueries.length > 0) {
           extraQueries.forEach((qItem: any) => {
             if (!qItem.text.trim()) return;
             const condition = buildCondition(qItem.field, qItem.text);
             if (!condition) return;
-
             if (qItem.operator === 'AND' || qItem.operator === 'OR') {
               dbQuery = dbQuery.or(condition); 
             } else if (qItem.operator === 'NOT') {
@@ -197,21 +170,14 @@ export async function POST(req: Request) {
       let allKwData: any[] = [];
       let from = 0;
       const step = 1000;
-
       while (true) {
         const { data: chunk, error: chunkError } = await dbQuery.range(from, from + step - 1);
-        if (chunkError) {
-          error = chunkError;
-          break;
-        }
+        if (chunkError) { error = chunkError; break; }
         if (!chunk || chunk.length === 0) break;
-
         allKwData = allKwData.concat(chunk);
-        
         if (chunk.length < step) break;
         from += step;
       }
-      
       data = allKwData;
       
       if (isExactMatch && searchField === 'major' && cleanRawQuery) {
@@ -223,10 +189,7 @@ export async function POST(req: Request) {
       }
     }
 
-    if (error) {
-      console.error('Supabase Query Error:', error);
-      throw error;
-    }
+    if (error) throw error;
     return NextResponse.json({ results: data || [] });
 
   } catch (err: any) {
