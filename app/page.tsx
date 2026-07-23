@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import Image from "next/image";
 import { Search, Sparkles, ChevronDown, Moon, Sun, Plus, Minus, Loader2, User, Download, ExternalLink, Filter, X, BookOpen, ArrowUpDown, Type, GraduationCap, Calendar, Tag, ChevronLeft, ChevronRight, Eye, RotateCcw, Quote, CheckCircle2, Share2, Menu, BarChart2, Home as HomeIcon, Layers } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -238,7 +238,6 @@ export default function Home() {
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
-  // ⭐️ Stats Filter State
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [statTimeframe, setStatTimeframe] = useState<'all'|'month'|'year'>('all');
   const [statAction, setStatAction] = useState<'download'|'view'>('download');
@@ -296,7 +295,6 @@ export default function Home() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showCitationModal, setShowCitationModal] = useState(false);
 
-  // ⭐️ 3D Quick Select Toggle
   const [showMajorsList, setShowMajorsList] = useState(false);
   const [dynamicMajors, setDynamicMajors] = useState<{major: string, count: number}[]>([]);
 
@@ -331,7 +329,7 @@ export default function Home() {
 
     if (statTimeframe === 'month') {
       const start = new Date(statYear - 543, statStartMonth - 1, 1);
-      const end = new Date(statYear - 543, statEndMonth, 0, 23, 59, 59); // สิ้นเดือน
+      const end = new Date(statYear - 543, statEndMonth, 0, 23, 59, 59);
       startDate = start.toISOString();
       endDate = end.toISOString();
     } else if (statTimeframe === 'year') {
@@ -720,7 +718,6 @@ export default function Home() {
   const sliderMinPos = globalMaxYear > globalMinYear ? ((currentYearMin - globalMinYear) / (globalMaxYear - globalMinYear)) * 100 : 0;
   const sliderMaxPos = globalMaxYear > globalMinYear ? ((currentYearMax - globalMinYear) / (globalMaxYear - globalMinYear)) * 100 : 100;
 
-  // ฟังก์ชันช่วยสร้าง Array ตัวเลขปี พ.ศ.
   const generateYearsBE = (startOffset: number) => {
     const years = [];
     for (let i = 0; i < startOffset; i++) {
@@ -802,7 +799,6 @@ export default function Home() {
 
           <form onSubmit={handleSearch} className="relative z-10 flex flex-col bg-white border-2 border-indigo-100 dark:bg-slate-900 dark:border-slate-700 rounded-3xl shadow-xl transition-all duration-300 focus-within:border-indigo-400 dark:focus-within:border-indigo-500">
             
-            {/* ⭐️ แก้ UI Search Box บนมือถือ ให้ input อยู่บน ปุ่มอยู่ล่าง */}
             <div className="flex flex-col sm:flex-row p-3 sm:p-3 gap-3 w-full">
               
               <div className="order-1 sm:order-2 flex-1 relative w-full">
@@ -900,7 +896,6 @@ export default function Home() {
             </div>
           </form>
 
-          {/* ⭐️ ปุ่ม 3 มิติ สำหรับ Toggle ซ่อน/แสดง สาขาวิชา */}
           {dynamicMajors.length > 0 && (
             <div className="mt-8 w-full px-4 flex flex-col items-center">
               <button 
@@ -1327,7 +1322,6 @@ export default function Home() {
 
             </div>
             
-            {/* ⭐️ แก้ UI Modal ปุ่มด้านล่าง สำหรับมือถือ ให้จัดเรียงสวยงาม */}
             <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-3 relative justify-center sm:justify-between">
               
               <div className="flex justify-center items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold w-full sm:w-auto px-4 py-2.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
@@ -1345,8 +1339,9 @@ export default function Home() {
                     <Quote className="w-5 h-5" /> <span className="hidden sm:inline">{t.cite}</span>
                   </button>
 
+                  {/* ⭐️ แก้บั๊ก Popup อ้างอิงทะลุจอ (ดึง origin ให้ขยายจากซ้ายไปขวาบนมือถือ) */}
                   {showCitationModal && (
-                    <div className="absolute bottom-full right-0 mb-2 w-48 sm:w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-in fade-in zoom-in">
+                    <div className="absolute bottom-full left-0 sm:left-auto sm:right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-left sm:origin-bottom-right">
                       <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">เลือกรูปแบบการอ้างอิง</p>
                       {['NBU', 'APA7', 'MLA9', 'Chicago', 'Vancouver', 'Harvard'].map((style) => (
                         <button 
@@ -1411,7 +1406,6 @@ export default function Home() {
                 <button onClick={() => setStatTimeframe('year')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${statTimeframe === 'year' ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.timeYear}</button>
               </div>
 
-              {/* ⭐️ Filter ตัวเลือกเดือนและปี */}
               {statTimeframe === 'month' && (
                 <div className="flex flex-wrap items-center justify-center gap-3 mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                   <div className="flex items-center gap-2">
