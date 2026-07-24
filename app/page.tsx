@@ -390,12 +390,22 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // ⭐️ ระบบดักลิงก์ Download จาก Google Drive แบบใหม่และเก่า
   const getDirectDownloadUrl = (url: string) => {
     if (!url) return "";
-    const match = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)\//);
-    if (match && match[1]) {
-      return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+    
+    // ดักจับรูปแบบ: https://drive.google.com/open?id=1zR...&usp=drive_fs
+    const matchOpen = url.match(/\/open\?id=([a-zA-Z0-9-_]+)/);
+    if (matchOpen && matchOpen[1]) {
+      return `https://drive.google.com/uc?export=download&id=${matchOpen[1]}`;
     }
+
+    // ดักจับรูปแบบเดิม: https://drive.google.com/file/d/1zR.../view
+    const matchFile = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)\//);
+    if (matchFile && matchFile[1]) {
+      return `https://drive.google.com/uc?export=download&id=${matchFile[1]}`;
+    }
+    
     return url;
   };
 
@@ -1193,24 +1203,24 @@ export default function Home() {
                 
                 <div className="flex flex-wrap gap-3 justify-start sm:justify-end items-center w-full md:w-auto mt-3 md:mt-0">
                   
-                  <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold w-full sm:w-auto justify-center sm:justify-start mb-2 sm:mb-0 mr-0 sm:mr-2 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
+                  <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold mr-2 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
                     <span title="ยอดเข้าชม" className="flex items-center gap-1.5"><Eye className="w-5 h-5 text-blue-500" />{item.view_count || 0}</span>
                     <span className="w-px h-5 bg-slate-300 dark:bg-slate-600"></span>
                     <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5"><Download className="w-5 h-5 text-emerald-500" />{item.download_count || 0}</span>
                   </div>
 
                   {item.drive_url && (
-                    <a href={getPreviewUrl(item.drive_url)} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-3.5 py-2 rounded-lg transition-colors text-sm shadow-sm">
+                    <a href={getPreviewUrl(item.drive_url)} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-3.5 py-2 rounded-lg transition-colors text-sm shadow-sm">
                       <ExternalLink className="w-4 h-4" /> <span className="hidden sm:inline">{t.viewOnline}</span><span className="sm:hidden">{t.viewOnlineMobile}</span>
                     </a>
                   )}
                   {item.drive_url && (
-                    <a href={getDirectDownloadUrl(item.drive_url)} onClick={() => trackStat(item.id, 'download')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
+                    <a href={getDirectDownloadUrl(item.drive_url)} onClick={() => trackStat(item.id, 'download')} className="flex items-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
                       <Download className="w-4 h-4" /> <span className="hidden sm:inline">{t.download}</span>
                     </a>
                   )}
                   {item.tdc_url && (
-                    <a href={item.tdc_url} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-lg transition-colors shadow-sm text-sm">
+                    <a href={item.tdc_url} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex items-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-lg transition-colors shadow-sm text-sm">
                       <ExternalLink className="w-5 h-5" /> TDC
                     </a>
                   )}
@@ -1339,7 +1349,6 @@ export default function Home() {
                     <Quote className="w-5 h-5" /> <span className="hidden sm:inline">{t.cite}</span>
                   </button>
 
-                  {/* ⭐️ แก้บั๊ก Popup อ้างอิงทะลุจอ (ดึง origin ให้ขยายจากซ้ายไปขวาบนมือถือ) */}
                   {showCitationModal && (
                     <div className="absolute bottom-full left-0 sm:left-auto sm:right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-left sm:origin-bottom-right">
                       <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">เลือกรูปแบบการอ้างอิง</p>

@@ -20,7 +20,8 @@ const buildCondition = (field: string, text: string) => {
     case 'major': return `major.ilike.${safeText}`;
     case 'education_level': return `education_level.ilike.${safeText}`;
     case 'keyword': return `keywords.ilike.${safeText}`;
-    default: return `title_th.ilike.${safeText},keywords.ilike.${safeText},author.ilike.${safeText},major.ilike.${safeText},advisor_1.ilike.${safeText}`;
+    // ⭐️ เพิ่ม title_en เข้าไปในการค้นหาแบบ All fields
+    default: return `title_th.ilike.${safeText},title_en.ilike.${safeText},keywords.ilike.${safeText},author.ilike.${safeText},major.ilike.${safeText},advisor_1.ilike.${safeText}`;
   }
 };
 
@@ -34,7 +35,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ thesis: data });
     }
 
-    // ⭐️ ระบบดึงสถิติแยกตามวันที่ (เดือน, ปี แบบเจาะจง)
     if (body.getStats) {
       const { timeframe, startDate, endDate } = body; 
       let topDownloads = [];
@@ -50,7 +50,6 @@ export async function POST(req: Request) {
         topDownloads = dls?.map((d: any) => ({ ...d, total_count: d.download_count })) || [];
         topViews = vws?.map((v: any) => ({ ...v, total_count: v.view_count })) || [];
       } else {
-        // ใช้ RPC ที่สร้างใหม่ เพื่อกรองตามวันที่เป๊ะๆ
         const { data: dls } = await supabase.rpc('get_top_stats_by_date', { action_filter: 'download', start_date: startDate, end_date: endDate });
         const { data: vws } = await supabase.rpc('get_top_stats_by_date', { action_filter: 'view', start_date: startDate, end_date: endDate });
         
@@ -157,7 +156,7 @@ export async function POST(req: Request) {
               dbQuery = dbQuery.or(condition); 
             } else if (qItem.operator === 'NOT') {
               const safeNot = `%${qItem.text.trim().replace(/\s+/g, '%').replace(/['",]/g, '')}%`;
-              if (qItem.field === 'title') dbQuery = dbQuery.not('title_th', 'ilike', safeNot);
+              if (qItem.field === 'title') dbQuery = dbQuery.not('title_th', 'ilike', safeNot).not('title_en', 'ilike', safeNot);
               else if (qItem.field === 'author') dbQuery = dbQuery.not('author', 'ilike', safeNot);
               else if (qItem.field === 'year') dbQuery = dbQuery.not('publish_year', 'ilike', safeNot);
               else if (qItem.field === 'major') dbQuery = dbQuery.not('major', 'ilike', safeNot);
