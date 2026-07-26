@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import Image from "next/image";
-// ⭐️ เอา Facebook ออกจากการ Import เพื่อแก้ปัญหา Vercel Build Error
 import { Search, Sparkles, ChevronDown, Moon, Sun, Plus, Minus, Loader2, User, Download, ExternalLink, Filter, X, BookOpen, ArrowUpDown, Type, GraduationCap, Calendar, Tag, ChevronLeft, ChevronRight, Eye, RotateCcw, Quote, CheckCircle2, Share2, Menu, BarChart2, Home as HomeIcon, Layers, Link as LinkIcon, MessageSquare, Mail, Share } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -411,7 +410,8 @@ export default function Home() {
     const title = item.title_th || item.title_en || 'วิทยานิพนธ์/สารนิพนธ์';
     const text = `แวะมาอ่านวิทยานิพนธ์/สารนิพนธ์เรื่องนี้ดูสิ: "${title}" โดย ${item.author || '-'} - คลังข้อมูลมหาวิทยาลัยนอร์ทกรุงเทพ`;
 
-    if (platform === 'native' && navigator.share) {
+    // ⭐️ ตรวจสอบ typeof navigator.share อย่างปลอดภัย (Vercel Fix)
+    if (platform === 'native' && typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
         try {
             await navigator.share({ title: 'NBU Search', text: text, url: url });
             setShowShareModal(false);
