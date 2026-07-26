@@ -410,8 +410,8 @@ export default function Home() {
     const title = item.title_th || item.title_en || 'วิทยานิพนธ์/สารนิพนธ์';
     const text = `แวะมาอ่านวิทยานิพนธ์/สารนิพนธ์เรื่องนี้ดูสิ: "${title}" โดย ${item.author || '-'} - คลังข้อมูลมหาวิทยาลัยนอร์ทกรุงเทพ`;
 
-    // ⭐️ ตรวจสอบ typeof navigator.share อย่างปลอดภัย (Vercel Fix)
-    if (platform === 'native' && typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    // ⭐️ ลบ typeof navigator.share ออก เพื่อข้าม Error ของ TypeScript ใน Vercel
+    if (platform === 'native' && typeof navigator !== 'undefined') {
         try {
             await navigator.share({ title: 'NBU Search', text: text, url: url });
             setShowShareModal(false);
@@ -1273,7 +1273,7 @@ export default function Home() {
                 
                 <div className="flex flex-wrap gap-3 justify-start sm:justify-end items-center w-full md:w-auto mt-3 md:mt-0">
                   
-                  <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold w-full sm:w-auto justify-center sm:justify-start mb-2 sm:mb-0 mr-0 sm:mr-2 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
+                  <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold mr-2 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
                     <span title="ยอดเข้าชม" className="flex items-center gap-1.5"><Eye className="w-5 h-5 text-blue-500" />{item.view_count || 0}</span>
                     <span className="w-px h-5 bg-slate-300 dark:bg-slate-600"></span>
                     <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5"><Download className="w-5 h-5 text-emerald-500" />{item.download_count || 0}</span>
@@ -1419,7 +1419,6 @@ export default function Home() {
                     <Quote className="w-5 h-5" /> <span className="hidden sm:inline">{t.cite}</span>
                   </button>
 
-                  {/* ⭐️ แก้บั๊ก Popup อ้างอิงทะลุจอ (ดึง origin ให้ขยายจากซ้ายไปขวาบนมือถือ) */}
                   {showCitationModal && (
                     <div className="absolute bottom-full left-0 sm:left-auto sm:right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-left sm:origin-bottom-right">
                       <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">เลือกรูปแบบการอ้างอิง</p>
@@ -1445,7 +1444,6 @@ export default function Home() {
                     <span className="hidden sm:inline">{copiedId?.startsWith('share') ? t.copied : t.share}</span>
                   </button>
 
-                  {/* ⭐️ แก้บั๊ก Popup Share ทะลุจอ (ปรับเหมือนปุ่มอ้างอิง) */}
                   {showShareModal && (
                     <div className="absolute bottom-full left-0 sm:left-auto sm:right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-left sm:origin-bottom-right">
                       <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">แชร์ไปที่</p>
