@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import Image from "next/image";
-import { Search, Sparkles, ChevronDown, Moon, Sun, Plus, Minus, Loader2, User, Download, ExternalLink, Filter, X, BookOpen, ArrowUpDown, Type, GraduationCap, Calendar, Tag, ChevronLeft, ChevronRight, Eye, RotateCcw, Quote, CheckCircle2, Share2, Menu, BarChart2, Home as HomeIcon, Layers, Link as LinkIcon, MessageSquare, Facebook, Mail, Share } from "lucide-react";
+// ⭐️ เอา Facebook ออกจากการ Import เพื่อแก้ปัญหา Vercel Build Error
+import { Search, Sparkles, ChevronDown, Moon, Sun, Plus, Minus, Loader2, User, Download, ExternalLink, Filter, X, BookOpen, ArrowUpDown, Type, GraduationCap, Calendar, Tag, ChevronLeft, ChevronRight, Eye, RotateCcw, Quote, CheckCircle2, Share2, Menu, BarChart2, Home as HomeIcon, Layers, Link as LinkIcon, MessageSquare, Mail, Share } from "lucide-react";
 import { useTheme } from "next-themes";
 
 type Lang = 'th' | 'en' | 'ch';
@@ -267,7 +268,6 @@ export default function Home() {
   const [searchMode, setSearchMode] = useState("Keyword");
   const [query, setQuery] = useState("");
   const [searchField, setSearchField] = useState("all");
-  
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [extraQueries, setExtraQueries] = useState<{text: string, operator: string, field: string}[]>([]);
 
@@ -280,8 +280,6 @@ export default function Home() {
   const [hasSearched, setHasSearched] = useState(false);
   
   const [selectedThesis, setSelectedThesis] = useState<any | null>(null);
-  
-  // ⭐️ Refine Search (Search Within) State
   const [refineQueries, setRefineQueries] = useState<{text: string, field: string, operator: string}[]>([{text: '', field: 'all', operator: 'AND'}]);
 
   const [showFilters, setShowFilters] = useState(false);
@@ -297,7 +295,7 @@ export default function Home() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showCitationModal, setShowCitationModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false); // ⭐️ Share Modal State
+  const [showShareModal, setShowShareModal] = useState(false); 
 
   const [showMajorsList, setShowMajorsList] = useState(false);
   const [dynamicMajors, setDynamicMajors] = useState<{major: string, count: number}[]>([]);
@@ -408,7 +406,6 @@ export default function Home() {
     return url.replace(/\/view(\?usp=sharing)?$/, '/preview');
   };
 
-  // ⭐️ ระบบจัดการ Share ขั้นสูง (Native & Custom Platforms)
   const triggerShare = async (item: any, platform: string) => {
     const url = `${window.location.origin}${window.location.pathname}?id=${item.id}`;
     const title = item.title_th || item.title_en || 'วิทยานิพนธ์/สารนิพนธ์';
@@ -531,7 +528,6 @@ export default function Home() {
     setExtraQueries(newQueries);
   };
 
-  // ⭐️ ระบบจัดการ Refine Queries (ค้นหาซ้อน)
   const addRefineQuery = () => setRefineQueries([...refineQueries, { text: "", operator: "AND", field: "all" }]);
   const removeRefineQuery = (index: number) => {
     const newQueries = [...refineQueries];
@@ -616,7 +612,6 @@ export default function Home() {
         }
       }
 
-      // ⭐️ ระบบประมวลผล Refine Search (Boolean Logic)
       let matchRefine = true;
       const validRefineQueries = refineQueries.filter(q => q.text.trim() !== "");
       
@@ -757,7 +752,6 @@ export default function Home() {
   const handleTagClick = (field: string, value: string, scrollToTop: boolean = true) => {
     if(!value) return; 
     
-    // ⭐️ ระบบเลื่อนจออัจฉริยะ (ถ้าไม่ใช่ป้ายการ์ดเล็ก ให้เลื่อนลงไปที่ผลลัพธ์)
     if (scrollToTop) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
@@ -1034,7 +1028,6 @@ export default function Home() {
                   </select>
                 </div>
                 
-                {/* ⭐️ ปรับปรุงระบบ Search Within เป็นแบบ Builder */}
                 <div className="w-full relative flex-1 min-w-0 flex flex-col gap-2">
                   {refineQueries.map((q, index) => (
                     <div key={index} className="flex items-stretch sm:items-center gap-1 sm:gap-2">
@@ -1426,6 +1419,7 @@ export default function Home() {
                     <Quote className="w-5 h-5" /> <span className="hidden sm:inline">{t.cite}</span>
                   </button>
 
+                  {/* ⭐️ แก้บั๊ก Popup อ้างอิงทะลุจอ (ดึง origin ให้ขยายจากซ้ายไปขวาบนมือถือ) */}
                   {showCitationModal && (
                     <div className="absolute bottom-full left-0 sm:left-auto sm:right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-left sm:origin-bottom-right">
                       <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">เลือกรูปแบบการอ้างอิง</p>
@@ -1451,7 +1445,7 @@ export default function Home() {
                     <span className="hidden sm:inline">{copiedId?.startsWith('share') ? t.copied : t.share}</span>
                   </button>
 
-                  {/* ⭐️ ระบบ Share Menu สำหรับตัวเลือก Social Media */}
+                  {/* ⭐️ แก้บั๊ก Popup Share ทะลุจอ (ปรับเหมือนปุ่มอ้างอิง) */}
                   {showShareModal && (
                     <div className="absolute bottom-full left-0 sm:left-auto sm:right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-left sm:origin-bottom-right">
                       <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">แชร์ไปที่</p>
@@ -1471,7 +1465,7 @@ export default function Home() {
                       </button>
 
                       <button onClick={() => triggerShare(selectedThesis, 'facebook')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center gap-3 hover:bg-[#1877F2]/10 text-slate-700 dark:text-slate-300 hover:text-[#1877F2]">
-                        <Facebook className="w-4 h-4" /> Facebook
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg> Facebook
                       </button>
 
                       <button onClick={() => triggerShare(selectedThesis, 'email')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center gap-3 hover:bg-red-50 text-slate-700 dark:text-slate-300 dark:hover:bg-red-900/30 hover:text-red-600">
