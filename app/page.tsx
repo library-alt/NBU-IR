@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import Image from "next/image";
-import { Search, Sparkles, ChevronDown, Moon, Sun, Plus, Minus, Loader2, User, Download, ExternalLink, Filter, X, BookOpen, ArrowUpDown, Type, GraduationCap, Calendar, Tag, ChevronLeft, ChevronRight, Eye, RotateCcw, Quote, CheckCircle2, Share2, Menu, BarChart2, Home as HomeIcon, Layers } from "lucide-react";
+import { Search, Sparkles, ChevronDown, Moon, Sun, Plus, Minus, Loader2, User, Download, ExternalLink, Filter, X, BookOpen, ArrowUpDown, Type, GraduationCap, Calendar, Tag, ChevronLeft, ChevronRight, Eye, RotateCcw, Quote, CheckCircle2, Share2, Menu, BarChart2, Home as HomeIcon, Layers, Link as LinkIcon, MessageSquare, Facebook, Mail, Share } from "lucide-react";
 import { useTheme } from "next-themes";
 
 type Lang = 'th' | 'en' | 'ch';
@@ -18,7 +18,7 @@ const DICT = {
     found: "พบ",
     items: "รายการ",
     showPerPage: "แสดงหน้าละ",
-    searchInResults: "ค้นหาในผลลัพธ์นี้...",
+    searchInResults: "ค้นหาในผลลัพธ์...",
     filterBtn: "ตัวกรองข้อมูล",
     closeFilter: "ซ่อนตัวกรอง",
     sortNewest: "ปีใหม่ - เก่า",
@@ -69,7 +69,7 @@ const DICT = {
     toMonth: "ถึงเดือน",
     year: "ปี พ.ศ.",
     fields: {
-      all: "ทั้งหมดทุกเขตข้อมูล",
+      all: "ทุกเขตข้อมูล",
       title: "ชื่อเรื่อง",
       author: "ชื่อผู้แต่ง",
       year: "ปีที่พิมพ์",
@@ -87,7 +87,7 @@ const DICT = {
     found: "Found",
     items: "titles",
     showPerPage: "Items per page",
-    searchInResults: "Search within results...",
+    searchInResults: "Search within...",
     filterBtn: "Filters",
     closeFilter: "Close Filters",
     sortNewest: "Newest - Oldest",
@@ -267,6 +267,7 @@ export default function Home() {
   const [searchMode, setSearchMode] = useState("Keyword");
   const [query, setQuery] = useState("");
   const [searchField, setSearchField] = useState("all");
+  
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [extraQueries, setExtraQueries] = useState<{text: string, operator: string, field: string}[]>([]);
 
@@ -279,7 +280,9 @@ export default function Home() {
   const [hasSearched, setHasSearched] = useState(false);
   
   const [selectedThesis, setSelectedThesis] = useState<any | null>(null);
-  const [searchWithin, setSearchWithin] = useState("");
+  
+  // ⭐️ Refine Search (Search Within) State
+  const [refineQueries, setRefineQueries] = useState<{text: string, field: string, operator: string}[]>([{text: '', field: 'all', operator: 'AND'}]);
 
   const [showFilters, setShowFilters] = useState(false);
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
@@ -294,6 +297,7 @@ export default function Home() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showCitationModal, setShowCitationModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false); // ⭐️ Share Modal State
 
   const [showMajorsList, setShowMajorsList] = useState(false);
   const [dynamicMajors, setDynamicMajors] = useState<{major: string, count: number}[]>([]);
@@ -390,22 +394,12 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ⭐️ ระบบดักลิงก์ Download จาก Google Drive แบบใหม่และเก่า
   const getDirectDownloadUrl = (url: string) => {
     if (!url) return "";
-    
-    // ดักจับรูปแบบ: https://drive.google.com/open?id=1zR...&usp=drive_fs
     const matchOpen = url.match(/\/open\?id=([a-zA-Z0-9-_]+)/);
-    if (matchOpen && matchOpen[1]) {
-      return `https://drive.google.com/uc?export=download&id=${matchOpen[1]}`;
-    }
-
-    // ดักจับรูปแบบเดิม: https://drive.google.com/file/d/1zR.../view
+    if (matchOpen && matchOpen[1]) return `https://drive.google.com/uc?export=download&id=${matchOpen[1]}`;
     const matchFile = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)\//);
-    if (matchFile && matchFile[1]) {
-      return `https://drive.google.com/uc?export=download&id=${matchFile[1]}`;
-    }
-    
+    if (matchFile && matchFile[1]) return `https://drive.google.com/uc?export=download&id=${matchFile[1]}`;
     return url;
   };
 
@@ -414,11 +408,34 @@ export default function Home() {
     return url.replace(/\/view(\?usp=sharing)?$/, '/preview');
   };
 
-  const handleShare = (item: any) => {
+  // ⭐️ ระบบจัดการ Share ขั้นสูง (Native & Custom Platforms)
+  const triggerShare = async (item: any, platform: string) => {
     const url = `${window.location.origin}${window.location.pathname}?id=${item.id}`;
-    navigator.clipboard.writeText(url);
-    setCopiedId('share');
-    setTimeout(() => setCopiedId(null), 2000);
+    const title = item.title_th || item.title_en || 'วิทยานิพนธ์/สารนิพนธ์';
+    const text = `แวะมาอ่านวิทยานิพนธ์/สารนิพนธ์เรื่องนี้ดูสิ: "${title}" โดย ${item.author || '-'} - คลังข้อมูลมหาวิทยาลัยนอร์ทกรุงเทพ`;
+
+    if (platform === 'native' && navigator.share) {
+        try {
+            await navigator.share({ title: 'NBU Search', text: text, url: url });
+            setShowShareModal(false);
+            return;
+        } catch (err) { console.log('Share canceled or error', err); }
+    }
+
+    if (platform === 'copy') {
+        navigator.clipboard.writeText(url);
+        setCopiedId('share-copy');
+        setTimeout(() => { setCopiedId(null); setShowShareModal(false); }, 1500);
+        return;
+    }
+
+    let shareUrl = '';
+    if (platform === 'line') shareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+    if (platform === 'facebook') shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+    if (platform === 'email') shareUrl = `mailto:?subject=${encodeURIComponent('แนะนำบทความวิจัย NBU')}&body=${encodeURIComponent(text + '\n\n' + url)}`;
+    
+    if (shareUrl) window.open(shareUrl, '_blank');
+    setShowShareModal(false);
   };
 
   const generateCitation = (item: any, style: string) => {
@@ -514,6 +531,19 @@ export default function Home() {
     setExtraQueries(newQueries);
   };
 
+  // ⭐️ ระบบจัดการ Refine Queries (ค้นหาซ้อน)
+  const addRefineQuery = () => setRefineQueries([...refineQueries, { text: "", operator: "AND", field: "all" }]);
+  const removeRefineQuery = (index: number) => {
+    const newQueries = [...refineQueries];
+    newQueries.splice(index, 1);
+    setRefineQueries(newQueries);
+  };
+  const updateRefineQuery = (index: number, key: string, value: string) => {
+    const newQueries = [...refineQueries];
+    newQueries[index] = { ...newQueries[index], [key]: value };
+    setRefineQueries(newQueries);
+  };
+
   const availableFilters = useMemo(() => {
     const resCount: Record<string, number> = {};
     const yearCount: Record<string, number> = {};
@@ -558,7 +588,7 @@ export default function Home() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedResources, selectedYears, selectedAdvisors, selectedMajors, searchWithin, sortBy, yearMin, yearMax, itemsPerPage]);
+  }, [selectedResources, selectedYears, selectedAdvisors, selectedMajors, refineQueries, sortBy, yearMin, yearMax, itemsPerPage]);
 
   const filteredAndSortedResults = useMemo(() => {
     let filtered = allResults.filter(item => {
@@ -586,19 +616,42 @@ export default function Home() {
         }
       }
 
-      let matchSearchWithin = true;
-      if (searchWithin.trim() !== "") {
-        const sq = searchWithin.toLowerCase();
-        matchSearchWithin = 
-          (item.title_th && item.title_th.toLowerCase().includes(sq)) ||
-          (item.title_en && item.title_en.toLowerCase().includes(sq)) ||
-          (item.author && item.author.toLowerCase().includes(sq)) ||
-          (item.keywords && item.keywords.toLowerCase().includes(sq)) ||
-          (item.abstract_th && item.abstract_th.toLowerCase().includes(sq)) ||
-          (item.major && item.major.toLowerCase().includes(sq));
+      // ⭐️ ระบบประมวลผล Refine Search (Boolean Logic)
+      let matchRefine = true;
+      const validRefineQueries = refineQueries.filter(q => q.text.trim() !== "");
+      
+      if (validRefineQueries.length > 0) {
+        let currentMatch = false;
+        
+        validRefineQueries.forEach((q, idx) => {
+          const text = q.text.toLowerCase();
+          let fieldMatch = false;
+          const check = (val: string) => (val || '').toLowerCase().includes(text);
+
+          if (q.field === 'all') {
+            fieldMatch = check(item.title_th) || check(item.title_en) || check(item.author) || check(item.keywords) || check(item.major) || check(item.abstract_th);
+          } else if (q.field === 'title') {
+            fieldMatch = check(item.title_th) || check(item.title_en);
+          } else if (q.field === 'year') {
+            fieldMatch = check(item.publish_year);
+          } else if (q.field === 'advisor') {
+            fieldMatch = check(item.advisor_1) || check(item.advisor_2) || check(item.advisor_3);
+          } else {
+            fieldMatch = check(item[q.field]);
+          }
+
+          if (idx === 0) {
+            currentMatch = q.operator === 'NOT' ? !fieldMatch : fieldMatch;
+          } else {
+            if (q.operator === 'AND') currentMatch = currentMatch && fieldMatch;
+            else if (q.operator === 'OR') currentMatch = currentMatch || fieldMatch;
+            else if (q.operator === 'NOT') currentMatch = currentMatch && !fieldMatch;
+          }
+        });
+        matchRefine = currentMatch;
       }
 
-      return matchResource && matchMajor && matchAdvisor && matchYear && matchSearchWithin;
+      return matchResource && matchMajor && matchAdvisor && matchYear && matchRefine;
     });
 
     if (searchMode === "Semantic") {
@@ -610,7 +663,7 @@ export default function Home() {
       else if (sortBy === "alphabeticalDesc") filtered.sort((a, b) => (b.title_th || "").localeCompare(a.title_th || ""));
     }
     return filtered;
-  }, [allResults, selectedResources, selectedYears, selectedAdvisors, selectedMajors, sortBy, searchMode, searchWithin, yearMin, yearMax]);
+  }, [allResults, selectedResources, selectedYears, selectedAdvisors, selectedMajors, sortBy, searchMode, refineQueries, yearMin, yearMax]);
 
   const totalPages = Math.ceil(filteredAndSortedResults.length / itemsPerPage);
   const paginatedResults = filteredAndSortedResults.slice(
@@ -635,7 +688,7 @@ export default function Home() {
     setHasSearched(true);
     setShowFilters(false);
     setSelectedThesis(null); 
-    setSearchWithin(""); 
+    setRefineQueries([{text: '', field: 'all', operator: 'AND'}]); 
     
     try {
       const res = await fetch('/api/search', {
@@ -689,7 +742,7 @@ export default function Home() {
     setAllResults([]);
     setHasSearched(false);
     setSelectedThesis(null);
-    setSearchWithin("");
+    setRefineQueries([{text: '', field: 'all', operator: 'AND'}]);
     setShowFilters(false);
     setSelectedResources([]);
     setSelectedYears([]);
@@ -704,8 +757,13 @@ export default function Home() {
   const handleTagClick = (field: string, value: string, scrollToTop: boolean = true) => {
     if(!value) return; 
     
+    // ⭐️ ระบบเลื่อนจออัจฉริยะ (ถ้าไม่ใช่ป้ายการ์ดเล็ก ให้เลื่อนลงไปที่ผลลัพธ์)
     if (scrollToTop) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setTimeout(() => {
+        document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
     }
     
     setSearchMode("Keyword");
@@ -949,6 +1007,8 @@ export default function Home() {
           )}
         </div>
 
+        <div id="results-section" className="w-full pt-2"></div>
+
         {hasSearched && !isLoading && allResults.length > 0 && (
           <div className="w-full flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 mb-5 px-4 py-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800">
             
@@ -974,25 +1034,42 @@ export default function Home() {
                   </select>
                 </div>
                 
-                <div className="w-full relative flex-1 min-w-0">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={searchWithin}
-                    onChange={(e) => setSearchWithin(e.target.value)}
-                    placeholder={t.searchInResults}
-                    className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-700 rounded-full text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-slate-900 dark:text-white placeholder-slate-400"
-                  />
-                  {searchWithin && (
-                    <button onClick={() => setSearchWithin("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500">
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
+                {/* ⭐️ ปรับปรุงระบบ Search Within เป็นแบบ Builder */}
+                <div className="w-full relative flex-1 min-w-0 flex flex-col gap-2">
+                  {refineQueries.map((q, index) => (
+                    <div key={index} className="flex items-stretch sm:items-center gap-1 sm:gap-2">
+                      {index > 0 && (
+                        <select value={q.operator} onChange={(e) => updateRefineQuery(index, "operator", e.target.value)} className="bg-slate-100 dark:bg-slate-800 text-xs sm:text-sm rounded-lg px-2 outline-none font-bold text-slate-600 dark:text-slate-300">
+                          <option value="AND">AND</option>
+                          <option value="OR">OR</option>
+                          <option value="NOT">NOT</option>
+                        </select>
+                      )}
+                      <div className="relative flex-shrink-0 flex items-center border border-gray-200 dark:border-slate-700 rounded-l-full bg-slate-50 dark:bg-slate-950">
+                        <select value={q.field} onChange={(e) => updateRefineQuery(index, "field", e.target.value)} className="appearance-none bg-transparent px-3 py-2 text-xs sm:text-sm outline-none pr-6 font-semibold text-indigo-600 dark:text-indigo-400 cursor-pointer">
+                          {SEARCH_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                        </select>
+                        <ChevronDown className="w-3 h-3 absolute right-2 pointer-events-none text-slate-400" />
+                      </div>
+                      <input
+                        type="text"
+                        value={q.text}
+                        onChange={(e) => updateRefineQuery(index, "text", e.target.value)}
+                        placeholder={index === 0 ? t.searchInResults : '...'}
+                        className="flex-1 bg-slate-50 dark:bg-slate-950 border border-l-0 border-gray-200 dark:border-slate-700 rounded-r-full px-3 py-2 text-xs sm:text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all text-slate-900 dark:text-white"
+                      />
+                      {index === 0 ? (
+                        <button onClick={addRefineQuery} className="p-2 sm:p-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-full transition-colors"><Plus className="w-4 h-4" /></button>
+                      ) : (
+                        <button onClick={() => removeRefineQuery(index)} className="p-2 sm:p-2.5 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-full transition-colors"><Minus className="w-4 h-4" /></button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
             
-            <div className="flex flex-row flex-wrap items-center justify-between sm:justify-end gap-3 w-full lg:w-auto mt-2 lg:mt-0">
+            <div className="flex flex-row flex-wrap items-center justify-between lg:justify-end gap-3 w-full lg:w-auto mt-2 lg:mt-0">
               <div className="relative flex items-center bg-slate-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded-full px-4 py-2 shadow-sm flex-1 sm:flex-none">
                 <ArrowUpDown className="w-4 h-4 text-slate-500 mr-2" />
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} disabled={searchMode === "Semantic"} className="appearance-none bg-transparent outline-none pr-5 text-sm font-bold text-gray-700 dark:text-slate-200 cursor-pointer disabled:opacity-50 w-full sm:w-auto">
@@ -1203,24 +1280,24 @@ export default function Home() {
                 
                 <div className="flex flex-wrap gap-3 justify-start sm:justify-end items-center w-full md:w-auto mt-3 md:mt-0">
                   
-                  <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold mr-2 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
+                  <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold w-full sm:w-auto justify-center sm:justify-start mb-2 sm:mb-0 mr-0 sm:mr-2 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
                     <span title="ยอดเข้าชม" className="flex items-center gap-1.5"><Eye className="w-5 h-5 text-blue-500" />{item.view_count || 0}</span>
                     <span className="w-px h-5 bg-slate-300 dark:bg-slate-600"></span>
                     <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5"><Download className="w-5 h-5 text-emerald-500" />{item.download_count || 0}</span>
                   </div>
 
                   {item.drive_url && (
-                    <a href={getPreviewUrl(item.drive_url)} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-3.5 py-2 rounded-lg transition-colors text-sm shadow-sm">
+                    <a href={getPreviewUrl(item.drive_url)} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-3.5 py-2 rounded-lg transition-colors text-sm shadow-sm">
                       <ExternalLink className="w-4 h-4" /> <span className="hidden sm:inline">{t.viewOnline}</span><span className="sm:hidden">{t.viewOnlineMobile}</span>
                     </a>
                   )}
                   {item.drive_url && (
-                    <a href={getDirectDownloadUrl(item.drive_url)} onClick={() => trackStat(item.id, 'download')} className="flex items-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
+                    <a href={getDirectDownloadUrl(item.drive_url)} onClick={() => trackStat(item.id, 'download')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
                       <Download className="w-4 h-4" /> <span className="hidden sm:inline">{t.download}</span>
                     </a>
                   )}
                   {item.tdc_url && (
-                    <a href={item.tdc_url} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex items-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-lg transition-colors shadow-sm text-sm">
+                    <a href={item.tdc_url} target="_blank" rel="noreferrer" onClick={() => trackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-lg transition-colors shadow-sm text-sm">
                       <ExternalLink className="w-5 h-5" /> TDC
                     </a>
                   )}
@@ -1365,13 +1442,44 @@ export default function Home() {
                   )}
                 </div>
 
-                <button 
-                  onClick={() => handleShare(selectedThesis)} 
-                  className={`flex-1 sm:flex-none justify-center px-4 py-2.5 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 border ${copiedId === 'share' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600'}`}
-                >
-                  {copiedId === 'share' ? <CheckCircle2 className="w-5 h-5" /> : <Share2 className="w-5 h-5" />} 
-                  <span className="hidden sm:inline">{t.share}</span>
-                </button>
+                <div className="relative flex-1 sm:flex-none">
+                  <button 
+                    onClick={() => setShowShareModal(!showShareModal)} 
+                    className={`w-full sm:w-auto justify-center px-4 py-2.5 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 border ${copiedId?.startsWith('share') ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600'}`}
+                  >
+                    {copiedId?.startsWith('share') ? <CheckCircle2 className="w-5 h-5" /> : <Share2 className="w-5 h-5" />} 
+                    <span className="hidden sm:inline">{copiedId?.startsWith('share') ? t.copied : t.share}</span>
+                  </button>
+
+                  {/* ⭐️ ระบบ Share Menu สำหรับตัวเลือก Social Media */}
+                  {showShareModal && (
+                    <div className="absolute bottom-full left-0 sm:left-auto sm:right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-left sm:origin-bottom-right">
+                      <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">แชร์ไปที่</p>
+                      
+                      {typeof navigator !== 'undefined' && navigator.share && (
+                        <button onClick={() => triggerShare(selectedThesis, 'native')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center gap-3 hover:bg-blue-50 text-slate-700 dark:text-slate-300 dark:hover:bg-blue-900/30 hover:text-blue-600">
+                          <Share className="w-4 h-4" /> แชร์ผ่านมือถือ
+                        </button>
+                      )}
+                      
+                      <button onClick={() => triggerShare(selectedThesis, 'copy')} className={`w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center gap-3 ${copiedId === 'share-copy' ? 'bg-green-50 text-green-600 dark:bg-green-900/30' : 'hover:bg-blue-50 text-slate-700 dark:text-slate-300 dark:hover:bg-blue-900/30 hover:text-blue-600'}`}>
+                        {copiedId === 'share-copy' ? <CheckCircle2 className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />} คัดลอกลิงก์
+                      </button>
+                      
+                      <button onClick={() => triggerShare(selectedThesis, 'line')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center gap-3 hover:bg-[#00c300]/10 text-slate-700 dark:text-slate-300 hover:text-[#00c300]">
+                        <MessageSquare className="w-4 h-4" /> LINE
+                      </button>
+
+                      <button onClick={() => triggerShare(selectedThesis, 'facebook')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center gap-3 hover:bg-[#1877F2]/10 text-slate-700 dark:text-slate-300 hover:text-[#1877F2]">
+                        <Facebook className="w-4 h-4" /> Facebook
+                      </button>
+
+                      <button onClick={() => triggerShare(selectedThesis, 'email')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center gap-3 hover:bg-red-50 text-slate-700 dark:text-slate-300 dark:hover:bg-red-900/30 hover:text-red-600">
+                        <Mail className="w-4 h-4" /> Gmail (อีเมล)
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 {selectedThesis.drive_url && (
                   <a href={getPreviewUrl(selectedThesis.drive_url)} target="_blank" rel="noreferrer" onClick={() => trackStat(selectedThesis.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-4 py-2.5 rounded-xl transition-colors text-sm shadow-sm">
