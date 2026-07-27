@@ -410,8 +410,8 @@ export default function Home() {
     const title = item.title_th || item.title_en || 'วิทยานิพนธ์/สารนิพนธ์';
     const text = `แวะมาอ่านวิทยานิพนธ์/สารนิพนธ์เรื่องนี้ดูสิ: "${title}" โดย ${item.author || '-'} - คลังข้อมูลมหาวิทยาลัยนอร์ทกรุงเทพ`;
 
-    // ⭐️ ลบ typeof navigator.share ออก เพื่อข้าม Error ของ TypeScript ใน Vercel
-    if (platform === 'native' && typeof navigator !== 'undefined') {
+    // ⭐️ ลบการเช็ค typeof navigator.share ออก เพื่อหลีกเลี่ยง Error ของ TypeScript ใน Vercel
+    if (platform === 'native') {
         try {
             await navigator.share({ title: 'NBU Search', text: text, url: url });
             setShowShareModal(false);
@@ -1448,11 +1448,9 @@ export default function Home() {
                     <div className="absolute bottom-full left-0 sm:left-auto sm:right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-left sm:origin-bottom-right">
                       <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">แชร์ไปที่</p>
                       
-                      {typeof navigator !== 'undefined' && navigator.share && (
-                        <button onClick={() => triggerShare(selectedThesis, 'native')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center gap-3 hover:bg-blue-50 text-slate-700 dark:text-slate-300 dark:hover:bg-blue-900/30 hover:text-blue-600">
-                          <Share className="w-4 h-4" /> แชร์ผ่านมือถือ
-                        </button>
-                      )}
+                      <button onClick={() => triggerShare(selectedThesis, 'native')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center gap-3 hover:bg-blue-50 text-slate-700 dark:text-slate-300 dark:hover:bg-blue-900/30 hover:text-blue-600">
+                        <Share className="w-4 h-4" /> แชร์ผ่านมือถือ
+                      </button>
                       
                       <button onClick={() => triggerShare(selectedThesis, 'copy')} className={`w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center gap-3 ${copiedId === 'share-copy' ? 'bg-green-50 text-green-600 dark:bg-green-900/30' : 'hover:bg-blue-50 text-slate-700 dark:text-slate-300 dark:hover:bg-blue-900/30 hover:text-blue-600'}`}>
                         {copiedId === 'share-copy' ? <CheckCircle2 className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />} คัดลอกลิงก์
