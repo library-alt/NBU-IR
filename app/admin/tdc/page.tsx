@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { TextSelect, ArrowRight, Save, Loader2, CheckCircle2, HardDrive, Link as LinkIcon } from "lucide-react";
-import { Thesis } from "../../../types/thesis";
+import { Thesis } from "../../types/thesis";
 
 export default function TDCExtractPage() {
   const [rawText, setRawText] = useState("");
