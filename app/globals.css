@@ -12,7 +12,7 @@
   }
 }
 
-/* เอฟเฟกต์แสงออร่าเปลี่ยนสีรุ้งพาสเทล */
+/* เอฟเฟกต์แสงออร่า Soft RGB สายละมุน (เคลื่อนที่ช้าลง) */
 @keyframes rainbowFlow {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -20,12 +20,22 @@
 }
 
 .bg-rainbow-glow {
+  /* ใช้สี RGB แบบพาสเทลอ่อนๆ ละมุนตา */
   background: linear-gradient(
     90deg,
-    #3b82f6, #8b5cf6, #ec4899, #f43f5e, #10b981, #3b82f6
+    #ffb3ba, #ffdfba, #ffffba, #baffc9, #bae1ff, #d8baff, #ffb3ba
   );
   background-size: 300% 300%;
-  animation: rainbowFlow 8s linear infinite;
+  animation: rainbowFlow 12s ease-in-out infinite; /* เปลี่ยนสีช้าลงเป็น 12 วินาที */
+}
+
+.bg-rainbow-glow {
+  background: linear-gradient(
+    90deg,
+    #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000
+  );
+  background-size: 300% 300%;
+  animation: rainbowFlow 5s linear infinite;
 }
 
 /* ---------------------------------------------------------

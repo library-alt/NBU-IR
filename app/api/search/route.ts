@@ -79,30 +79,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true });
     }
 
+    // ⭐️ โค้ดใหม่ที่สั้นและเร็วกว่าเดิม
     if (body.getMajors) {
-      let allData: any[] = [];
-      let from = 0;
-      const step = 1000;
-      while (true) {
-        const { data, error } = await supabase.from('theses').select('major').range(from, from + step - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        allData = allData.concat(data);
-        if (data.length < step) break;
-        from += step;
-      }
-      const majorCounts: Record<string, number> = {};
-      allData.forEach((item: any) => {
-        const m = (item.major || '').trim();
-        if (m) {
-          majorCounts[m] = (majorCounts[m] || 0) + 1;
-        }
-      });
-      const uniqueMajors = Object.entries(majorCounts)
-        .map(([major, count]) => ({ major, count }))
-        .sort((a, b) => a.major.localeCompare(b.major)); 
-
-      return NextResponse.json({ majors: uniqueMajors });
+      const { data, error } = await supabase
+        .from('view_major_counts')
+        .select('*');
+        
+      if (error) throw error;
+      
+      return NextResponse.json({ majors: data || [] });
     }
 
     const cleanRawQuery = (body.query || '').replace(/[\r\n]+/g, ' ').trim();
