@@ -219,10 +219,27 @@ export default function Home() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {searchData.dynamicMajors.map(item => {
                     const displayMajor = (lang === 'en' || lang === 'ch') && MAJOR_MAPPING[item.major]?.en ? MAJOR_MAPPING[item.major].en : item.major;
+                    
+                    // ⭐️ เช็คว่าปุ่มนี้กำลังถูกคลิกเลือกอยู่หรือไม่
+                    const isSelected = searchData.query === item.major && searchData.searchField === "major";
+
                     return (
-                      <button key={item.major} onClick={() => handleTagClick("major", item.major, false)} className="w-full p-4 rounded-2xl border bg-white/90 shadow-sm hover:-translate-y-1 hover:border-blue-400 dark:bg-slate-900/90 dark:border-slate-700 flex flex-col items-center justify-center text-center transition-all">
-                        <span className="font-bold text-slate-700 dark:text-slate-200">{displayMajor}</span>
-                        <span className="text-xs font-semibold mt-1 text-slate-500">{item.count} {t.items}</span>
+                      <button 
+                        key={item.major} 
+                        onClick={() => handleTagClick("major", item.major, false)} 
+                        // ⭐️ ปรับแต่งสี Hover และสีตอนคลิก (Selected)
+                        className={`group w-full p-4 rounded-2xl border shadow-sm flex flex-col items-center justify-center text-center transition-all duration-300
+                          ${isSelected 
+                            ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/40 dark:border-blue-500 ring-1 ring-blue-500/30' 
+                            : 'bg-white border-slate-200 hover:bg-blue-50 hover:border-blue-400 hover:-translate-y-1 hover:shadow-md dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-blue-900/30 dark:hover:border-blue-500'
+                          }`}
+                      >
+                        <span className={`font-bold transition-colors leading-snug ${isSelected ? 'text-blue-700 dark:text-blue-400' : 'text-slate-700 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-400'}`}>
+                          {displayMajor}
+                        </span>
+                        <span className={`text-xs font-semibold mt-1.5 transition-colors ${isSelected ? 'text-blue-600/80 dark:text-blue-400/80' : 'text-slate-500 dark:text-slate-400 group-hover:text-blue-500/80 dark:group-hover:text-blue-300/80'}`}>
+                          {item.count} {t.items}
+                        </span>
                       </button>
                     );
                   })}
@@ -230,7 +247,6 @@ export default function Home() {
               </div>
             </div>
           )}
-
         </div>
 
         <div id="results-section" className="w-full pt-2"></div>
