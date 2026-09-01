@@ -1,10 +1,10 @@
 // components/thesis/ThesisCard.tsx
-import { User, BookOpen, GraduationCap, Calendar, Eye, Download, ExternalLink } from "lucide-react";
+import { User, BookOpen, GraduationCap, Calendar, Eye, Download, ExternalLink, FileText } from "lucide-react"; // ⭐️ นำเข้า FileText เพิ่ม
 import { Thesis } from "../../types/thesis";
 
 interface ThesisCardProps {
   item: Thesis;
-  t: any; // Translation object
+  t: any; 
   searchMode: string;
   onSelect: (item: Thesis) => void;
   onTagClick: (field: string, value: string) => void;
@@ -14,31 +14,18 @@ interface ThesisCardProps {
 }
 
 export function ThesisCard({
-  item,
-  t,
-  searchMode,
-  onSelect,
-  onTagClick,
-  onTrackStat,
-  getPreviewUrl,
-  getDirectDownloadUrl
+  item, t, searchMode, onSelect, onTagClick, onTrackStat, getPreviewUrl, getDirectDownloadUrl
 }: ThesisCardProps) {
   return (
     <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl p-5 md:p-8 shadow-sm hover:shadow-lg transition-all text-left group">
       
       {/* Title Section */}
       <div className="flex flex-col gap-1 mb-4">
-        <h3 
-          onClick={() => { onTrackStat(item.id, 'view'); onSelect(item); }}
-          className="font-bold text-blue-700 dark:text-blue-400 leading-snug cursor-pointer hover:underline text-lg md:text-xl"
-        >
+        <h3 onClick={() => { onTrackStat(item.id, 'view'); onSelect(item); }} className="font-bold text-blue-700 dark:text-blue-400 leading-snug cursor-pointer hover:underline text-lg md:text-xl">
           {item.title_th}
         </h3>
         {item.title_en && (
-          <h4 
-            onClick={() => { onTrackStat(item.id, 'view'); onSelect(item); }}
-            className="font-semibold text-slate-500 dark:text-slate-400 leading-snug cursor-pointer hover:underline text-base md:text-lg italic"
-          >
+          <h4 onClick={() => { onTrackStat(item.id, 'view'); onSelect(item); }} className="font-semibold text-slate-500 dark:text-slate-400 leading-snug cursor-pointer hover:underline text-base md:text-lg italic">
             {item.title_en}
           </h4>
         )}
@@ -49,18 +36,26 @@ export function ThesisCard({
         <button onClick={() => onTagClick("author", item.author)} className="bg-gray-100 dark:bg-slate-800 px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-blue-100 hover:text-blue-700 transition-colors">
           <User className="w-3.5 h-3.5" /> {item.author || "-"}
         </button>
+        
+        {/* ⭐️ แท็กประเภททรัพยากร (เพิ่มใหม่) */}
+        {item.resource_type && (
+          <button onClick={() => onTagClick("all", item.resource_type)} className="bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300 px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-purple-100 transition-colors border border-purple-100 dark:border-purple-800/50">
+            <FileText className="w-3.5 h-3.5" /> {item.resource_type}
+          </button>
+        )}
+
         <button onClick={() => onTagClick("major", item.major)} className="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1.5 rounded-2xl flex items-start gap-1.5 border border-indigo-100 dark:border-indigo-800/50 hover:bg-indigo-100 transition-colors text-left max-w-full">
           <BookOpen className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /> <span className="whitespace-normal break-words leading-tight">{item.major?.trim().replace(/\s+/g, ' ') || "-"}</span>
         </button>
+        
         <button onClick={() => onTagClick("education_level", item.education_level)} className="bg-gray-100 dark:bg-slate-800 px-3 py-1.5 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-colors flex items-center gap-1.5">
           <GraduationCap className="w-3.5 h-3.5" />{item.education_level || "-"}
         </button>
-        <button 
-          onClick={() => item.publish_year && onTagClick("year", item.publish_year)} 
-          className={`px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 transition-colors ${item.publish_year ? 'bg-gray-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-blue-100 hover:text-blue-700 cursor-pointer' : 'bg-red-50 dark:bg-red-900/20 text-red-500 cursor-default'}`}
-        >
+        
+        <button onClick={() => item.publish_year && onTagClick("year", item.publish_year)} className={`px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 transition-colors ${item.publish_year ? 'bg-gray-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-blue-100 hover:text-blue-700 cursor-pointer' : 'bg-red-50 dark:bg-red-900/20 text-red-500 cursor-default'}`}>
           <Calendar className="w-3.5 h-3.5" />{item.publish_year ? `${item.publish_year}` : t.noYear}
         </button>
+        
         {item.similarity && searchMode === "Semantic" && (
           <span className="text-emerald-600 dark:text-emerald-400 font-bold ml-auto bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-800/50">
             {t.accuracy} {Math.min(99.9, Math.max(1, ((item.similarity - 0.35) * 2.2) * 100)).toFixed(1)}%
@@ -72,11 +67,7 @@ export function ThesisCard({
       <div className="flex flex-wrap items-center justify-between gap-5 pt-4 border-t border-slate-100 dark:border-slate-800">
         <div className="flex flex-wrap gap-2 flex-1">
           {item.keywords?.split(/[,，\n]+/).filter((k: string) => k.trim() !== '').map((kw: string, i: number) => (
-            <button 
-              key={i} 
-              onClick={() => onTagClick("keyword", kw.trim())}
-              className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors"
-            >
+            <button key={i} onClick={() => onTagClick("keyword", kw.trim())} className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors">
               #{kw.trim()}
             </button>
           ))}

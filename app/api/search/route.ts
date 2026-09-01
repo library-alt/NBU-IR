@@ -1,3 +1,4 @@
+// app/api/search/route.ts
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
@@ -20,8 +21,8 @@ const buildCondition = (field: string, text: string) => {
     case 'major': return `major.ilike.${safeText}`;
     case 'education_level': return `education_level.ilike.${safeText}`;
     case 'keyword': return `keywords.ilike.${safeText}`;
-    // ⭐️ เพิ่ม title_en เข้าไปในการค้นหาแบบ All fields
-    default: return `title_th.ilike.${safeText},title_en.ilike.${safeText},keywords.ilike.${safeText},author.ilike.${safeText},major.ilike.${safeText},advisor_1.ilike.${safeText}`;
+    // ⭐️ อัปเดตให้ค้นหาครอบคลุมประเภททรัพยากรด้วย
+    default: return `title_th.ilike.${safeText},title_en.ilike.${safeText},keywords.ilike.${safeText},author.ilike.${safeText},major.ilike.${safeText},advisor_1.ilike.${safeText},resource_type.ilike.${safeText}`;
   }
 };
 
@@ -37,9 +38,7 @@ export async function POST(req: Request) {
 
     if (body.getStats) {
       const { timeframe, startDate, endDate } = body; 
-      let topDownloads = [];
-      let topViews = [];
-      let totalVisits = 0;
+      let topDownloads = [], topViews = [], totalVisits = 0;
 
       if (timeframe === 'all') {
         const { data: dls } = await supabase.from('theses').select('id, title_th, author, download_count').order('download_count', { ascending: false }).limit(10);
@@ -52,19 +51,10 @@ export async function POST(req: Request) {
       } else {
         const { data: dls } = await supabase.rpc('get_top_stats_by_date', { action_filter: 'download', start_date: startDate, end_date: endDate });
         const { data: vws } = await supabase.rpc('get_top_stats_by_date', { action_filter: 'view', start_date: startDate, end_date: endDate });
-        
-        topDownloads = dls || [];
-        topViews = vws || [];
-
-        const { count } = await supabase.from('usage_logs')
-            .select('*', { count: 'exact', head: true })
-            .eq('action_type', 'view')
-            .gte('created_at', startDate)
-            .lte('created_at', endDate);
-        
+        topDownloads = dls || []; topViews = vws || [];
+        const { count } = await supabase.from('usage_logs').select('*', { count: 'exact', head: true }).eq('action_type', 'view').gte('created_at', startDate).lte('created_at', endDate);
         totalVisits = count || 0;
       }
-
       return NextResponse.json({ topDownloads, topViews, totalVisits });
     }
 
@@ -79,14 +69,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // ⭐️ โค้ดใหม่ที่สั้นและเร็วกว่าเดิม
     if (body.getMajors) {
-      const { data, error } = await supabase
-        .from('view_major_counts')
-        .select('*');
-        
+      const { data, error } = await supabase.from('view_major_counts').select('*');
       if (error) throw error;
-      
       return NextResponse.json({ majors: data || [] });
     }
 
@@ -99,6 +84,8 @@ export async function POST(req: Request) {
 
     let data = [];
     let error = null;
+    
+    // ⭐️ อัปเดต SELECT ให้ครอบคลุมทุกฟิลด์ที่เรามี
     const SELECT_COLUMNS = 'id, title_th, title_en, author, publish_year, education_level, major, resource_type, abstract_th, abstract_en, advisor_1, advisor_2, advisor_3, tdc_url, drive_url, keywords, view_count, download_count, similarity';
 
     if (mode === 'Semantic') {

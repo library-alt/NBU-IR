@@ -2,8 +2,8 @@
 "use client";
 
 import { useState } from "react";
-import { TextSelect, ArrowRight, Save, Loader2, CheckCircle2, HardDrive, Link as LinkIcon } from "lucide-react";
-import { Thesis } from "../../types/thesis";
+import { TextSelect, ArrowRight, Save, Loader2, CheckCircle2, HardDrive, Link as LinkIcon, Plus, Minus } from "lucide-react";
+import { Thesis } from "../../../types/thesis";
 
 export default function TDCExtractPage() {
   const [rawText, setRawText] = useState("");
@@ -11,27 +11,28 @@ export default function TDCExtractPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<{status: 'idle'|'success'|'duplicate'|'error', msg: string}>({status: 'idle', msg: ''});
 
-  // State สำหรับ Dropdown
   const [showEduList, setShowEduList] = useState(false);
   const [showMajorList, setShowMajorList] = useState(false);
+  const [showResourceList, setShowResourceList] = useState(false); 
+  
+  // ⭐️ State สำหรับจัดการผู้แต่งหลายคน
+  const [authorList, setAuthorList] = useState<string[]>([]);
 
-  // ฟังก์ชันแปลงลิงก์ Google Drive เป็น Direct Download
   const convertToDirectDownload = (url: string) => {
     if (!url) return "";
     const matchOpen = url.match(/\/open\?id=([a-zA-Z0-9-_]+)/);
     if (matchOpen && matchOpen[1]) return `https://drive.google.com/uc?export=download&id=${matchOpen[1]}`;
     const matchFile = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)\//);
     if (matchFile && matchFile[1]) return `https://drive.google.com/uc?export=download&id=${matchFile[1]}`;
-    return url; // ถ้าไม่ตรงรูปแบบ ให้คืนค่าลิงก์เดิมกลับไป
+    return url; 
   };
 
-  // ฟังก์ชันแยกข้อความจาก TDC
   const parseTDCData = () => {
     if (!rawText.trim()) return;
 
     const lines = rawText.split('\n').map(l => l.trim()).filter(l => l !== '');
     
-    let parsed: Partial<Thesis> = { keywords: '', abstract_th: '', abstract_en: '', drive_url: '' };
+    let parsed: Partial<Thesis> = { keywords: '', abstract_th: '', abstract_en: '', drive_url: '', resource_type: 'วิทยานิพนธ์' };
     let keywords: string[] = [];
     let abstracts: string[] = [];
     let advisors: string[] = [];
@@ -42,7 +43,12 @@ export default function TDCExtractPage() {
 
       if (line === 'Title') parsed.title_th = nextLine;
       else if (line === 'TitleAlternative') parsed.title_en = nextLine;
-      else if (line === 'Creator') parsed.author = nextLine;
+      else if (line === 'Creator') {
+        // ⭐️ เปลี่ยนคำว่า "และ" เป็น "," และแยกใส่ List ให้พร้อมแก้ไข
+        const cleanedAuthors = nextLine.replace(/\s+และ\s+/g, ', ').replace(/\s+and\s+/ig, ', ').replace(/,,/g, ',');
+        parsed.author = cleanedAuthors;
+        setAuthorList(cleanedAuthors.split(',').map(a => a.trim()).filter(a => a));
+      }
       else if (line === 'DateCreated') parsed.publish_year = nextLine;
       else if (line === 'ThesisLevel') parsed.education_level = nextLine;
       else if (line === 'ThesisDescipline') parsed.major = nextLine;
@@ -55,20 +61,24 @@ export default function TDCExtractPage() {
       else if (line === 'Contributor') {
         advisors.push(nextLine);
       }
-      // ⭐️ ดึงลิงก์และเปลี่ยน http เป็น https ทันที
       else if (line === 'ลิงค์สำหรับเข้าถึงเอกสาร') {
         parsed.tdc_url = nextLine.replace(/^http:\/\//i, 'https://');
       }
-      // สำรองเอาไว้เผื่อบรรทัดบนหาไม่เจอ
       else if (line === 'IdentifierURL') {
         if(!parsed.tdc_url) parsed.tdc_url = nextLine.replace(/^http:\/\//i, 'https://');
+      }
+      else if (line === 'Document type :') {
+        if(nextLine.includes('บทความวิจัยการประชุมวิชาการระดับชาติ')) parsed.resource_type = 'บทความวิจัยการประชุมวิชาการระดับชาติมหาวิทยาลัยนอร์ทกรุงเทพ';
+        else if(nextLine.includes('วิทยานิพนธ์')) parsed.resource_type = 'วิทยานิพนธ์';
+        else if(nextLine.includes('รายงานวิจัย')) parsed.resource_type = 'รายงานวิจัย';
+        else if(nextLine.includes('สารนิพนธ์')) parsed.resource_type = 'สารนิพนธ์';
+        else parsed.resource_type = nextLine;
       }
     }
 
     if (keywords.length > 0) parsed.keywords = keywords.join(', ');
     if (abstracts.length > 0) parsed.abstract_th = abstracts[0];
     if (abstracts.length > 1) parsed.abstract_en = abstracts[1];
-
     if (advisors.length > 0) parsed.advisor_1 = advisors[0];
     if (advisors.length > 1) parsed.advisor_2 = advisors[1];
     if (advisors.length > 2) parsed.advisor_3 = advisors[2];
@@ -83,7 +93,6 @@ export default function TDCExtractPage() {
     setIsSaving(true);
     setSaveStatus({status: 'idle', msg: ''});
 
-    // ⭐️ แปลง Google Drive เป็นแบบดาวน์โหลดก่อนส่งข้อมูล
     const formattedDriveUrl = extractedData.drive_url ? convertToDirectDownload(extractedData.drive_url) : '';
 
     try {
@@ -97,14 +106,14 @@ export default function TDCExtractPage() {
           'ปีที่พิมพ์': extractedData.publish_year,
           'ระดับการศึกษา': extractedData.education_level,
           'สาขาวิชา': extractedData.major,
-          'ประเภททรัพยากร': 'วิทยานิพนธ์',
+          'ประเภททรัพยากร': extractedData.resource_type || 'วิทยานิพนธ์',
           'บทคัดย่อไทย': extractedData.abstract_th,
           'บทคัดย่อภาษาอังกฤษ': extractedData.abstract_en,
           'อาจารย์ที่ปรึกษา 1': extractedData.advisor_1,
           'อาจารย์ที่ปรึกษา 2': extractedData.advisor_2,
           'อาจารย์ที่ปรึกษา 3': extractedData.advisor_3,
           'TDC': extractedData.tdc_url,
-          'Google Drive': formattedDriveUrl, // ส่งลิงก์ที่แปลงแล้วไปให้ Database
+          'Google Drive': formattedDriveUrl,
           'คำสืบค้น': extractedData.keywords
         })
       });
@@ -133,26 +142,14 @@ export default function TDCExtractPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
-        
-        {/* ซ้าย: วางข้อความดิบ */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col">
           <h2 className="font-bold text-lg mb-4 text-slate-700">1. วางข้อความดิบ (Raw Text)</h2>
-          <textarea
-            value={rawText}
-            onChange={(e) => setRawText(e.target.value)}
-            className="w-full flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 font-mono text-xs text-slate-600 resize-none"
-            placeholder={`วางเนื้อหาจากเว็บ TDC ที่นี่...\n\nตัวอย่าง:\nTitle\nปัจจัยส่วนประสมทางการตลาด...\nCreator\nHuang Hengyu\n...`}
-          />
-          <button 
-            onClick={parseTDCData}
-            disabled={!rawText.trim()}
-            className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-          >
+          <textarea value={rawText} onChange={(e) => setRawText(e.target.value)} className="w-full flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 font-mono text-xs text-slate-600 resize-none" placeholder="วางเนื้อหาจากเว็บ TDC ที่นี่..." />
+          <button onClick={parseTDCData} disabled={!rawText.trim()} className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
             วิเคราะห์และดึงข้อมูล <ArrowRight className="w-5 h-5" />
           </button>
         </div>
 
-        {/* ขวา: ผลลัพธ์ที่ดึงได้ */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col h-full overflow-hidden">
           <h2 className="font-bold text-lg mb-4 text-slate-700">2. ผลลัพธ์ที่ดึงได้ (Extracted Data)</h2>
           
@@ -160,19 +157,49 @@ export default function TDCExtractPage() {
             <div><label className="block text-xs font-bold text-slate-400 mb-1">ชื่อเรื่อง (TH)</label><input type="text" value={extractedData.title_th || ''} onChange={e => setExtractedData({...extractedData, title_th: e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-blue-700 outline-none focus:border-blue-400" /></div>
             <div><label className="block text-xs font-bold text-slate-400 mb-1">ชื่อเรื่อง (EN)</label><input type="text" value={extractedData.title_en || ''} onChange={e => setExtractedData({...extractedData, title_en: e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400" /></div>
             
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="block text-xs font-bold text-slate-400 mb-1">ผู้แต่ง</label><input type="text" value={extractedData.author || ''} onChange={e => setExtractedData({...extractedData, author: e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none focus:border-blue-400" /></div>
-              <div><label className="block text-xs font-bold text-slate-400 mb-1">ปีที่พิมพ์</label><input type="text" value={extractedData.publish_year || ''} onChange={e => setExtractedData({...extractedData, publish_year: e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none focus:border-blue-400" /></div>
+            {/* ⭐️ ส่วนจัดการผู้แต่งหลายคน */}
+            <div className="bg-slate-50 p-3 border border-slate-200 rounded-xl">
+              <label className="block text-xs font-bold text-slate-500 mb-2">ผู้แต่ง (เพิ่มลดได้)</label>
+              {authorList.map((author, idx) => (
+                <div key={idx} className="flex items-center gap-1.5 mb-2">
+                  <div className="bg-white border border-slate-200 text-slate-400 font-bold px-2.5 py-2 rounded-lg text-xs">{idx + 1}</div>
+                  <input
+                    type="text"
+                    value={author}
+                    onChange={(e) => {
+                      const newList = [...authorList];
+                      newList[idx] = e.target.value;
+                      setAuthorList(newList);
+                      setExtractedData({...extractedData, author: newList.filter(a => a.trim() !== '').join(', ')});
+                    }}
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"
+                  />
+                  <button type="button" onClick={() => {
+                      const newList = [...authorList];
+                      newList.splice(idx, 1);
+                      if(newList.length === 0) newList.push(''); 
+                      setAuthorList(newList);
+                      setExtractedData({...extractedData, author: newList.filter(a => a.trim() !== '').join(', ')});
+                    }} 
+                    className="p-2.5 bg-white border border-red-200 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button type="button" onClick={() => setAuthorList([...authorList, ''])} className="text-xs font-bold text-blue-600 bg-white border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors w-max">
+                <Plus className="w-3 h-3" /> เพิ่มผู้แต่ง
+              </button>
             </div>
 
-            {/* ⭐️ Custom Dropdown ระดับการศึกษาและสาขาวิชา */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* ⭐️ แก้ไขให้มี 3 ช่อง รวมถึงประเภททรัพยากร */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="relative">
                 <label className="block text-xs font-bold text-slate-400 mb-1">ระดับการศึกษา</label>
-                <input type="text" value={extractedData.education_level || ''} onChange={e => setExtractedData({...extractedData, education_level: e.target.value})} onFocus={() => setShowEduList(true)} onBlur={() => setTimeout(() => setShowEduList(false), 200)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400" placeholder="คลิกเลือกหรือพิมพ์" />
+                <input type="text" value={extractedData.education_level || ''} onChange={e => setExtractedData({...extractedData, education_level: e.target.value})} onFocus={() => setShowEduList(true)} onBlur={() => setTimeout(() => setShowEduList(false), 200)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400" placeholder="เลือก/พิมพ์" />
                 {showEduList && (
                   <ul className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                    {["ปริญญาตรี", "ปริญญาโท", "ปริญญาเอก"].map(level => (
+                    {["ปริญญาตรี", "ระดับปริญญาโท", "ระดับปริญญาเอก"].map(level => (
                       <li key={level} onMouseDown={() => setExtractedData({...extractedData, education_level: level})} className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-0">{level}</li>
                     ))}
                   </ul>
@@ -180,7 +207,7 @@ export default function TDCExtractPage() {
               </div>
               <div className="relative">
                 <label className="block text-xs font-bold text-slate-400 mb-1">สาขาวิชา</label>
-                <input type="text" value={extractedData.major || ''} onChange={e => setExtractedData({...extractedData, major: e.target.value})} onFocus={() => setShowMajorList(true)} onBlur={() => setTimeout(() => setShowMajorList(false), 200)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400" placeholder="คลิกเลือกหรือพิมพ์" />
+                <input type="text" value={extractedData.major || ''} onChange={e => setExtractedData({...extractedData, major: e.target.value})} onFocus={() => setShowMajorList(true)} onBlur={() => setTimeout(() => setShowMajorList(false), 200)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400" placeholder="เลือก/พิมพ์" />
                 {showMajorList && (
                   <ul className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
                     {[
@@ -194,22 +221,29 @@ export default function TDCExtractPage() {
                       "หลักสูตรศิลปศาสตรมหาบัณฑิต สาขาวิชาการพัฒนาธุรกิจและทุนมนุษย์",
                       "หลักสูตรศิลปศาสตรมหาบัณฑิต สาขาวิชาภาษาอังกฤษศึกษา",
                       "หลักสูตรศึกษาศาสตรมหาบัณฑิต สาขาวิชาการบริหารการศึกษา",
-                      "หลักสูตรศึกษาศาสตรมหาบัณฑิต สาขาวิชาหลักสูตรและการสอน"
+                      "หลักสูตรศึกษาศาสตรมหาบัณฑิต สาขาวิชาหลักสูตรและการสอน",
+                      "ด้านสังคมศาสตร์และสหวิทยาการ",
+                      "ด้านศึกษาศาสตร์",
+                      "ด้านสหวิทยาการ วิทยาศาสตร์และเทคโนโลยี"
                     ].map(major => (
                       <li key={major} onMouseDown={() => setExtractedData({...extractedData, major: major})} className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-0 leading-tight">{major}</li>
                     ))}
                   </ul>
                 )}
               </div>
+              <div className="relative">
+                <label className="block text-xs font-bold text-slate-400 mb-1">ประเภททรัพยากร</label>
+                <input type="text" value={extractedData.resource_type || ''} onChange={e => setExtractedData({...extractedData, resource_type: e.target.value})} onFocus={() => setShowResourceList(true)} onBlur={() => setTimeout(() => setShowResourceList(false), 200)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400" placeholder="เลือก/พิมพ์" />
+                {showResourceList && (
+                  <ul className="absolute right-0 z-50 w-[300px] mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                    {["วิทยานิพนธ์", "สารนิพนธ์", "รายงานวิจัย", "บทความวิจัย", "บทความวิจัยการประชุมวิชาการระดับชาติมหาวิทยาลัยนอร์ทกรุงเทพ"].map(type => (
+                      <li key={type} onMouseDown={() => setExtractedData({...extractedData, resource_type: type})} className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-0">{type}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-               <div><label className="block text-xs font-bold text-slate-400 mb-1">ที่ปรึกษา 1</label><input type="text" value={extractedData.advisor_1 || ''} onChange={e => setExtractedData({...extractedData, advisor_1: e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-blue-400" /></div>
-               <div><label className="block text-xs font-bold text-slate-400 mb-1">ที่ปรึกษา 2</label><input type="text" value={extractedData.advisor_2 || ''} onChange={e => setExtractedData({...extractedData, advisor_2: e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-blue-400" /></div>
-               <div><label className="block text-xs font-bold text-slate-400 mb-1">ที่ปรึกษา 3</label><input type="text" value={extractedData.advisor_3 || ''} onChange={e => setExtractedData({...extractedData, advisor_3: e.target.value})} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-blue-400" /></div>
-            </div>
-
-            {/* ⭐️ เพิ่มช่อง Google Drive และลิงก์ TDC */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1 flex items-center gap-1"><LinkIcon className="w-3 h-3"/> TDC URL</label>
@@ -233,17 +267,12 @@ export default function TDCExtractPage() {
                   {saveStatus.msg}
                </div>
              )}
-             <button 
-                onClick={handleSaveToDB}
-                disabled={!extractedData.title_th || isSaving}
-                className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-              >
+             <button onClick={handleSaveToDB} disabled={!extractedData.title_th || isSaving} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
                 {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />} 
                 {isSaving ? 'กำลังแปลง AI Embedding และบันทึก...' : 'บันทึกลงฐานข้อมูล (Save to Database)'}
               </button>
           </div>
         </div>
-
       </div>
     </div>
   );

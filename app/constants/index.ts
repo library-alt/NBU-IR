@@ -70,7 +70,6 @@ export const DICT: Record<string, any> = {
     }
   },
   en: {
-    // ใส่ข้อมูล EN เดิมของคุณลงไปตรงนี้...
     searchPlaceholder: "Type to search...",
     advancedSearch: "Advanced Search",
     addSearchField: "Add Field",
@@ -140,7 +139,6 @@ export const DICT: Record<string, any> = {
     }
   },
   ch: {
-    // ใส่ข้อมูล CH เดิมของคุณลงไปตรงนี้...
     searchPlaceholder: "输入搜索内容...",
     advancedSearch: "高级搜索",
     addSearchField: "添加搜索字段",
@@ -222,7 +220,14 @@ export const MAJOR_MAPPING: Record<string, { en: string, order: number }> = {
   "หลักสูตรศิลปศาสตรมหาบัณฑิต สาขาวิชาการพัฒนาธุรกิจและทุนมนุษย์": { en: "Master of Art Program in Business and Human Capital Development", order: 7 },
   "หลักสูตรศิลปศาสตรมหาบัณฑิต สาขาวิชาภาษาอังกฤษศึกษา": { en: "Master of Arts in English Language Studies", order: 8 },
   "หลักสูตรศึกษาศาสตรมหาบัณฑิต สาขาวิชาการบริหารการศึกษา": { en: "Master of Education Program in Educational Administration", order: 9 },
-  "หลักสูตรศึกษาศาสตรมหาบัณฑิต สาขาวิชาหลักสูตรและการสอน": { en: "Master of Education Program in Curriculum and Instruction", order: 10 }
+  "หลักสูตรศึกษาศาสตรมหาบัณฑิต สาขาวิชาหลักสูตรและการสอน": { en: "Master of Education Program in Curriculum and Instruction", order: 10 },
+  "รายงานวิจัย": { en: "Research Report", order: 11 },
+  "บทความวิจัย": { en: "Research Article", order: 12 },
+  "สารนิพนธ์": { en: "Independent Study", order: 13 },
+  "ด้านสังคมศาสตร์และสหวิทยาการ": { en: "Social Sciences and Interdisciplinary", order: 14 },
+  "ด้านศึกษาศาสตร์": { en: "Education", order: 15 },
+  "ด้านสหวิทยาการ วิทยาศาสตร์และเทคโนโลยี": { en: "Interdisciplinary, Science and Technology", order: 16 },
+  "บทความวิจัยการประชุมวิชาการระดับชาติมหาวิทยาลัยนอร์ทกรุงเทพ": { en: "NBU National Conference Research Article", order: 17 }
 };
 
 export const getSearchFields = (t: any) => [

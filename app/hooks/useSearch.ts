@@ -6,7 +6,6 @@ import { DICT, MAJOR_MAPPING } from "../constants";
 export function useSearch(lang: 'th' | 'en' | 'ch') {
   const t = DICT[lang];
 
-  // --- Search States ---
   const [searchMode, setSearchMode] = useState("Keyword");
   const [query, setQuery] = useState("");
   const [searchField, setSearchField] = useState("all");
@@ -14,13 +13,11 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
   const [extraQueries, setExtraQueries] = useState<SearchQuery[]>([]);
   const [refineQueries, setRefineQueries] = useState<SearchQuery[]>([{ text: '', field: 'all', operator: 'AND' }]);
 
-  // --- Result States ---
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [allResults, setAllResults] = useState<Thesis[]>([]);
   const [sortBy, setSortBy] = useState("newest");
 
-  // --- Filter States ---
   const [showFilters, setShowFilters] = useState(false);
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
@@ -29,36 +26,21 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
   const [yearMin, setYearMin] = useState<number | "">("");
   const [yearMax, setYearMax] = useState<number | "">("");
 
-  // --- Pagination States ---
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-
-  // --- Dynamic Majors (For Homepage suggestion) ---
   const [dynamicMajors, setDynamicMajors] = useState<{ major: string, count: number }[]>([]);
 
-  // 1. Load Suggestion Majors
   const loadRealMajors = async () => {
     try {
-      const res = await fetch('/api/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ getMajors: true })
-      });
+      const res = await fetch('/api/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ getMajors: true }) });
       const data = await res.json();
       if (data.majors) {
-        const sortedMajors = data.majors.sort((a: any, b: any) => {
-          const orderA = MAJOR_MAPPING[a.major]?.order ?? 999;
-          const orderB = MAJOR_MAPPING[b.major]?.order ?? 999;
-          return orderA - orderB;
-        });
+        const sortedMajors = data.majors.sort((a: any, b: any) => (MAJOR_MAPPING[a.major]?.order ?? 999) - (MAJOR_MAPPING[b.major]?.order ?? 999));
         setDynamicMajors(sortedMajors);
       }
-    } catch (e) {
-      console.error("Failed to load real majors:", e);
-    }
+    } catch (e) { console.error("Failed to load real majors:", e); }
   };
 
-  // 2. Execute Search
   const executeSearch = async (searchText: string, field: string, mode: string, extras: any[], isExactMatch: boolean = false) => {
     if (!searchText.trim() && extras.length === 0) return;
     setIsLoading(true);
@@ -70,13 +52,7 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          query: searchText, 
-          searchField: field,
-          mode: mode,
-          extraQueries: extras,
-          isExactMatch: isExactMatch 
-        }),
+        body: JSON.stringify({ query: searchText, searchField: field, mode: mode, extraQueries: extras, isExactMatch: isExactMatch }),
       });
       
       if (!res.ok) throw new Error(await res.text());
@@ -84,8 +60,7 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
       
       if (data.results) {
         setAllResults(data.results);
-        setYearMin(""); 
-        setYearMax("");
+        setYearMin(""); setYearMax("");
       }
     } catch (error: any) {
       console.error("Search failed:", error);
@@ -95,7 +70,6 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
     }
   };
 
-  // 3. Handle Filters Extraction from Results
   const availableFilters = useMemo(() => {
     const resCount: Record<string, number> = {};
     const yearCount: Record<string, number> = {};
@@ -103,7 +77,8 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
     const majorCount: Record<string, number> = {};
 
     allResults.forEach(item => {
-      if (item.education_level) resCount[item.education_level] = (resCount[item.education_level] || 0) + 1;
+      // ⭐️ เปลี่ยนจาก education_level เป็น resource_type ให้ตรงกับชื่อตัวกรอง
+      if (item.resource_type) resCount[item.resource_type] = (resCount[item.resource_type] || 0) + 1;
       if (item.publish_year) yearCount[item.publish_year] = (yearCount[item.publish_year] || 0) + 1;
       if (item.advisor_1) advCount[item.advisor_1] = (advCount[item.advisor_1] || 0) + 1;
       if (item.advisor_2) advCount[item.advisor_2] = (advCount[item.advisor_2] || 0) + 1;
@@ -123,10 +98,17 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
   const globalMinYear = useMemo(() => availableFilters.years.length === 0 ? 2500 : Math.min(...availableFilters.years.map(y => Number(y.val))), [availableFilters]);
   const globalMaxYear = useMemo(() => availableFilters.years.length === 0 ? new Date().getFullYear() + 543 : Math.max(...availableFilters.years.map(y => Number(y.val))), [availableFilters]);
 
-  // 4. Filtering and Sorting Logic
+  // ⭐️ ฟังก์ชันจัดการปุ่ม 5 ปี / 10 ปี
+  const applyQuickYear = (yearsBack: number) => {
+    setYearMin(globalMaxYear - yearsBack + 1);
+    setYearMax(globalMaxYear);
+    setSelectedYears([]); 
+  };
+
   const filteredAndSortedResults = useMemo(() => {
     let filtered = allResults.filter(item => {
-      const matchResource = selectedResources.length === 0 || selectedResources.includes(item.education_level);
+      // ⭐️ แก้ให้กรองด้วย resource_type
+      const matchResource = selectedResources.length === 0 || selectedResources.includes(item.resource_type!);
       const matchMajor = selectedMajors.length === 0 || selectedMajors.includes(item.major?.trim().replace(/\s+/g, ' '));
       const matchAdvisor = selectedAdvisors.length === 0 || 
         selectedAdvisors.includes(item.advisor_1!) || 
@@ -145,7 +127,6 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
         }
       }
 
-      // Refine Search In Results Logic
       let matchRefine = true;
       const validRefines = refineQueries.filter(q => q.text.trim() !== "");
       if (validRefines.length > 0) {
@@ -186,13 +167,11 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
   const totalPages = Math.ceil(filteredAndSortedResults.length / itemsPerPage);
   const paginatedResults = filteredAndSortedResults.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // 5. Tracking View/Download
   const trackStat = async (id: string | number, type: 'view' | 'download') => {
     setAllResults(prev => prev.map(item => item.id == id ? { ...item, [type === 'view' ? 'view_count' : 'download_count']: (item[type === 'view' ? 'view_count' : 'download_count'] || 0) + 1 } : item));
     fetch('/api/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trackStat: true, id, type }), keepalive: true }).catch(console.error);
   };
 
-  // Reset Function
   const handleReset = () => {
     setQuery(""); setSearchField("all"); setSearchMode("Keyword"); setShowAdvanced(false);
     setExtraQueries([]); setAllResults([]); setHasSearched(false);
@@ -208,6 +187,6 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
     filteredAndSortedResults, paginatedResults, totalPages, currentPage, setCurrentPage, itemsPerPage, setItemsPerPage,
     showFilters, setShowFilters, availableFilters, globalMinYear, globalMaxYear,
     selectedResources, setSelectedResources, selectedYears, setSelectedYears, selectedAdvisors, setSelectedAdvisors, selectedMajors, setSelectedMajors, yearMin, setYearMin, yearMax, setYearMax,
-    dynamicMajors, loadRealMajors, executeSearch, trackStat, handleReset
+    dynamicMajors, loadRealMajors, executeSearch, trackStat, handleReset, applyQuickYear
   };
 }

@@ -1,3 +1,4 @@
+// app/page.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -20,15 +21,15 @@ export default function Home() {
   const t = DICT[lang];
   const SEARCH_FIELDS = getSearchFields(t);
 
-  // Hooks & Global States
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const langMenuRef = useRef<HTMLDivElement>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
+  
+  // ⭐️ ตัวแปรควบคุมการซูม (0=เล็ก, 1=กลาง, 2=ใหญ่)
   const [fontSizeIndex, setFontSizeIndex] = useState(1);
-  const fontSizes = ["text-sm md:text-base", "text-base md:text-lg", "text-lg md:text-xl"];
   
   const [selectedThesis, setSelectedThesis] = useState<Thesis | null>(null);
   const [showMajorsList, setShowMajorsList] = useState(false);
@@ -75,17 +76,15 @@ export default function Home() {
     searchData.executeSearch(value.trim(), field, "Keyword", [], true); 
   };
 
-  const currentYearMin = searchData.yearMin !== "" ? searchData.yearMin : searchData.globalMinYear;
-  const currentYearMax = searchData.yearMax !== "" ? searchData.yearMax : searchData.globalMaxYear;
-  const sliderMinPos = searchData.globalMaxYear > searchData.globalMinYear ? ((currentYearMin - searchData.globalMinYear) / (searchData.globalMaxYear - searchData.globalMinYear)) * 100 : 0;
-  const sliderMaxPos = searchData.globalMaxYear > searchData.globalMinYear ? ((currentYearMax - searchData.globalMinYear) / (searchData.globalMaxYear - searchData.globalMinYear)) * 100 : 100;
-
   if (!mounted) return null;
   const isDark = resolvedTheme === 'dark';
 
   return (
-    <main className={`min-h-screen flex flex-col relative overflow-x-hidden transition-colors duration-500 ${fontSizes[fontSizeIndex]} ${isDark ? 'bg-[#080d1a]' : 'bg-slate-50'} ${searchData.hasSearched ? 'justify-start pt-10' : 'justify-center'}`}>
+    <main className={`min-h-screen flex flex-col relative overflow-x-hidden transition-colors duration-500 ${isDark ? 'bg-[#080d1a]' : 'bg-slate-50'} ${searchData.hasSearched ? 'justify-start pt-10' : 'justify-center'}`}>
       
+      {/* ⭐️ ใส่โค้ด CSS ซูมขนาดตัวอักษรของ Root HTML ให้ทุกอย่างขยายตามแบบ 100% */}
+      <style dangerouslySetInnerHTML={{ __html: `html { font-size: ${fontSizeIndex === 0 ? '14px' : fontSizeIndex === 1 ? '16px' : '18px'} !important; transition: font-size 0.3s ease; }` }} />
+
       {/* Top Navbar Items */}
       <div className="absolute top-6 left-6 z-50">
         <button onClick={() => setIsSidebarOpen(true)} className="flex items-center justify-center w-10 h-10 rounded-full border shadow-md transition-all duration-300 bg-white hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
@@ -128,23 +127,16 @@ export default function Home() {
       {/* Main Content Area */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 flex flex-col items-center z-10 py-6">
         
-        {/* Logo (แยกออกจาก Group เพื่อไม่ให้โดนแสง) */}
         <div className="w-full flex justify-center relative z-10 mb-8 mt-4">
           <Image src="/nbu-logo.png" alt="NBU Logo" width={searchData.hasSearched ? 200 : 350} height={100} className="dark:brightness-125 dark:contrast-110 object-contain transition-all duration-500" />
         </div>
 
         <div className="w-full max-w-3xl flex flex-col items-center">
-          
-          {/* กล่องค้นหาหลัก คลุมด้วย Group สำหรับแสง RGB */}
           <div className="relative group w-full mb-6 z-20">
-            {/* แสง Aura RGB ปรับพิกัดให้ฟุ้งเฉพาะรอบกล่องค้นหา ไม่ลามลงล่าง */}
             <div className="absolute -inset-y-4 -inset-x-2 md:-inset-x-8 bg-rainbow-glow rounded-[100px] blur-[60px] opacity-30 group-hover:opacity-60 transition-opacity duration-700 pointer-events-none z-0" />
             
-            {/* Search Box */}
             <form onSubmit={handleSearch} className="relative z-10 flex flex-col w-full bg-white border-2 border-indigo-100 dark:bg-slate-900 dark:border-slate-700 rounded-3xl shadow-xl transition-all focus-within:border-indigo-400">
               <div className="flex flex-col sm:flex-row p-3 gap-3 w-full">
-                
-                {/* ช่องค้นหาหลัก */}
                 <div className="order-1 sm:order-2 flex-1 relative w-full">
                   <input type="text" value={searchData.query} onChange={e => searchData.setQuery(e.target.value)} placeholder={t.searchPlaceholder} className="bg-transparent outline-none w-full px-4 py-3 sm:py-2 transition-colors text-slate-900 dark:text-white" />
                 </div>
@@ -175,23 +167,19 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Advanced Search Panel */}
               <div className={`overflow-hidden transition-all duration-300 ease-in-out border-t border-gray-100 dark:border-slate-800 ${searchData.showAdvanced ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0 border-transparent"}`}>
                 <div className="p-5 space-y-4 bg-gray-50/50 dark:bg-slate-900/50 rounded-b-3xl">
                   {searchData.extraQueries.map((q, index) => (
                     <div key={index} className="flex flex-col sm:flex-row items-center gap-3 bg-slate-100 dark:bg-slate-800 p-2.5 rounded-2xl shadow-inner border border-slate-200 dark:border-slate-700">
-                      
                       <select value={q.operator} onChange={(e) => {const n=[...searchData.extraQueries]; n[index].operator=e.target.value; searchData.setExtraQueries(n);}} className="w-full sm:w-24 px-3 py-2.5 rounded-xl text-sm font-bold bg-white text-slate-900 border border-slate-200 outline-none cursor-pointer">
                         <option value="AND">AND</option><option value="OR">OR</option><option value="NOT">NOT</option>
                       </select>
-                      
                       <div className="relative w-full sm:w-48">
                         <select value={q.field} onChange={(e) => {const n=[...searchData.extraQueries]; n[index].field=e.target.value; searchData.setExtraQueries(n);}} className="w-full appearance-none bg-white text-slate-900 pl-3 pr-8 py-2.5 text-sm font-bold border border-slate-200 rounded-xl outline-none cursor-pointer">
                           {SEARCH_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                         </select>
                         <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>
-                      
                       <div className="flex-1 flex w-full">
                         <input type="text" value={q.text} onChange={(e) => {const n=[...searchData.extraQueries]; n[index].text=e.target.value; searchData.setExtraQueries(n);}} placeholder="..." className="w-full px-4 bg-white text-slate-900 border border-slate-200 rounded-xl outline-none placeholder-slate-400" />
                         <button type="button" onClick={() => {const n=[...searchData.extraQueries]; n.splice(index,1); searchData.setExtraQueries(n);}} className="ml-2 p-2.5 text-red-500 bg-white border border-red-100 hover:bg-red-50 rounded-xl transition-colors shadow-sm"><Minus className="w-5 h-5" /></button>
@@ -208,26 +196,23 @@ export default function Home() {
             </form>
           </div>
 
-          {/* Majors Suggestion (อยู่ด้านนอกแสงออร่าแล้ว) */}
+          {/* ⭐️ Majors Suggestion (เพิ่ม margin bottom เพื่อไม่ให้ชิดแถบด้านล่างเกินไป) */}
           {searchData.dynamicMajors.length > 0 && (
-            <div className="w-full flex flex-col items-center relative z-10">
+            <div className="w-full flex flex-col items-center relative z-10 mb-8">
               <button onClick={() => setShowMajorsList(!showMajorsList)} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-8 rounded-2xl flex items-center gap-3 shadow-[0_6px_0_#1e3a8a] active:shadow-[0_0px_0_#1e3a8a] active:translate-y-[6px] transition-all">
                 <Layers className="w-5 h-5" /> {showMajorsList ? t.hideMajors : t.showMajors}
               </button>
-              <div className={`w-full overflow-hidden transition-all duration-500 ${showMajorsList ? 'max-h-[2000px] opacity-100 mt-6' : 'max-h-0 opacity-0 mt-0'}`}>
+              <div className={`w-full overflow-hidden transition-all duration-500 ${showMajorsList ? 'max-h-[2000px] opacity-100 mt-8' : 'max-h-0 opacity-0 mt-0'}`}>
                 <div className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4 flex items-center justify-center gap-1.5"><Tag className="w-4 h-4" /> {t.quickSelectTitle}</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {searchData.dynamicMajors.map(item => {
                     const displayMajor = (lang === 'en' || lang === 'ch') && MAJOR_MAPPING[item.major]?.en ? MAJOR_MAPPING[item.major].en : item.major;
-                    
-                    // ⭐️ เช็คว่าปุ่มนี้กำลังถูกคลิกเลือกอยู่หรือไม่
                     const isSelected = searchData.query === item.major && searchData.searchField === "major";
 
                     return (
                       <button 
                         key={item.major} 
                         onClick={() => handleTagClick("major", item.major, false)} 
-                        // ⭐️ ปรับแต่งสี Hover และสีตอนคลิก (Selected)
                         className={`group w-full p-4 rounded-2xl border shadow-sm flex flex-col items-center justify-center text-center transition-all duration-300
                           ${isSelected 
                             ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/40 dark:border-blue-500 ring-1 ring-blue-500/30' 
@@ -251,66 +236,67 @@ export default function Home() {
 
         <div id="results-section" className="w-full pt-2"></div>
 
-        {/* Search Results Header & Filter Bar */}
+        {/* ⭐️ Search Results Header & Filter Bar (ออกแบบ 2 บรรทัด ให้ช่องค้นหากว้างสะใจ) */}
         {searchData.hasSearched && !searchData.isLoading && searchData.allResults.length > 0 && (
-          <div className="w-full flex flex-col lg:flex-row justify-between gap-4 mb-5 px-4 py-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 flex-1">
-              <p className="font-semibold text-slate-500 whitespace-nowrap">{t.found} <span className="text-blue-600 font-bold text-lg">{searchData.filteredAndSortedResults.length}</span> {t.items}</p>
-              
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full">
-                <div className="flex items-center gap-2 pl-0 md:pl-4 md:border-l h-6 shrink-0">
-                  <span className="text-sm text-slate-500 whitespace-nowrap">{t.showPerPage}</span>
-                  <select value={searchData.itemsPerPage} onChange={e => searchData.setItemsPerPage(Number(e.target.value))} className="bg-white border rounded-lg px-2 py-1 outline-none font-semibold text-sm">
+          <div className="w-full flex flex-col gap-4 mb-6 px-5 py-4 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-gray-200 dark:border-slate-800">
+            
+            {/* บรรทัดที่ 1: ข้อมูลจำนวน และ เครื่องมือจัดเรียง */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-4">
+                <p className="font-semibold text-slate-500 whitespace-nowrap">{t.found} <span className="text-blue-600 font-bold text-xl">{searchData.filteredAndSortedResults.length}</span> {t.items}</p>
+                <div className="hidden sm:flex items-center gap-2 pl-4 border-l h-6 shrink-0 border-slate-200 dark:border-slate-700">
+                  <span className="text-sm text-slate-500">{t.showPerPage}</span>
+                  <select value={searchData.itemsPerPage} onChange={e => searchData.setItemsPerPage(Number(e.target.value))} className="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 outline-none font-bold text-sm text-slate-700 dark:text-slate-200 cursor-pointer">
                     <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
                   </select>
                 </div>
-                
-                {/* Search In Results */}
-                <div className="w-full flex-1 flex flex-col gap-2">
-                  {searchData.refineQueries.map((q, index) => (
-                    <div key={index} className="flex items-center gap-1 sm:gap-2">
-                      {index > 0 && <select value={q.operator} onChange={e => {const n=[...searchData.refineQueries]; n[index].operator=e.target.value; searchData.setRefineQueries(n);}} className="bg-slate-100 rounded-lg px-2 outline-none text-sm font-bold"><option value="AND">AND</option></select>}
-                      <div className="flex items-center border rounded-l-full bg-slate-50">
-                        <select value={q.field} onChange={e => {const n=[...searchData.refineQueries]; n[index].field=e.target.value; searchData.setRefineQueries(n);}} className="bg-transparent px-3 py-2 text-sm outline-none font-semibold text-indigo-600">{SEARCH_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}</select>
-                      </div>
-                      <input type="text" value={q.text} onChange={e => {const n=[...searchData.refineQueries]; n[index].text=e.target.value; searchData.setRefineQueries(n);}} placeholder={index===0 ? t.searchInResults : '...'} className="flex-1 bg-slate-50 border-y border-r rounded-r-full px-3 py-2 text-sm outline-none" />
-                      {index === 0 ? <button onClick={() => searchData.setRefineQueries([...searchData.refineQueries, {text: '', field: 'all', operator: 'AND'}])} className="p-2 text-blue-600 bg-blue-50 rounded-full"><Plus className="w-4 h-4" /></button> 
-                                   : <button onClick={() => {const n=[...searchData.refineQueries]; n.splice(index,1); searchData.setRefineQueries(n);}} className="p-2 text-red-600 bg-red-50 rounded-full"><Minus className="w-4 h-4" /></button>}
-                    </div>
-                  ))}
+              </div>
+              
+              <div className="flex flex-row items-center gap-3">
+                <div className="relative flex items-center bg-slate-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded-full px-4 py-2">
+                  <ArrowUpDown className="w-4 h-4 text-slate-500 mr-2" />
+                  <select value={searchData.sortBy} onChange={e => searchData.setSortBy(e.target.value)} disabled={searchData.searchMode === "Semantic"} className="bg-transparent outline-none text-sm font-bold cursor-pointer disabled:opacity-50 dark:text-white">
+                    <option value="newest" className="dark:bg-slate-800">{t.sortNewest}</option><option value="oldest" className="dark:bg-slate-800">{t.sortOldest}</option><option value="alphabeticalAsc" className="dark:bg-slate-800">{t.sortAlphaAsc}</option><option value="alphabeticalDesc" className="dark:bg-slate-800">{t.sortAlphaDesc}</option>
+                  </select>
                 </div>
+                <button onClick={() => searchData.setShowFilters(!searchData.showFilters)} className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-full border transition-all ${searchData.showFilters ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}>
+                  <Filter className="w-4 h-4" /> {t.filterBtn}
+                </button>
               </div>
             </div>
             
-            <div className="flex flex-row items-center gap-3">
-              <div className="relative flex items-center bg-slate-50 border rounded-full px-4 py-2 flex-1">
-                <ArrowUpDown className="w-4 h-4 text-slate-500 mr-2" />
-                <select value={searchData.sortBy} onChange={e => searchData.setSortBy(e.target.value)} disabled={searchData.searchMode === "Semantic"} className="bg-transparent outline-none text-sm font-bold cursor-pointer disabled:opacity-50 w-full">
-                  <option value="newest">{t.sortNewest}</option><option value="oldest">{t.sortOldest}</option><option value="alphabeticalAsc">{t.sortAlphaAsc}</option><option value="alphabeticalDesc">{t.sortAlphaDesc}</option>
-                </select>
-              </div>
-              <button onClick={() => searchData.setShowFilters(!searchData.showFilters)} className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-full border ${searchData.showFilters ? 'bg-blue-600 text-white' : 'bg-white text-slate-700'}`}>
-                <Filter className="w-4 h-4" /> {t.filterBtn}
-              </button>
+            {/* บรรทัดที่ 2: ช่องค้นหาในผลลัพธ์ (กว้างเต็มพื้นที่) */}
+            <div className="w-full flex flex-col gap-2">
+              {searchData.refineQueries.map((q, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  {index > 0 && <select value={q.operator} onChange={e => {const n=[...searchData.refineQueries]; n[index].operator=e.target.value; searchData.setRefineQueries(n);}} className="bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2.5 outline-none text-sm font-bold border border-slate-200 dark:border-slate-700"><option value="AND">AND</option></select>}
+                  <div className="flex items-center border border-gray-200 dark:border-slate-700 rounded-l-2xl bg-slate-50 dark:bg-slate-950">
+                    <select value={q.field} onChange={e => {const n=[...searchData.refineQueries]; n[index].field=e.target.value; searchData.setRefineQueries(n);}} className="bg-transparent px-4 py-2.5 text-sm outline-none font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer">{SEARCH_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}</select>
+                  </div>
+                  <input type="text" value={q.text} onChange={e => {const n=[...searchData.refineQueries]; n[index].text=e.target.value; searchData.setRefineQueries(n);}} placeholder={index===0 ? t.searchInResults : '...'} className="flex-1 bg-slate-50 dark:bg-slate-950 border-y border-r border-gray-200 dark:border-slate-700 rounded-r-2xl px-4 py-2.5 text-base outline-none text-slate-900 dark:text-white placeholder-slate-400" />
+                  {index === 0 ? <button onClick={() => searchData.setRefineQueries([...searchData.refineQueries, {text: '', field: 'all', operator: 'AND'}])} className="p-3 text-blue-600 bg-blue-50 dark:bg-blue-900/30 rounded-full hover:bg-blue-100 transition-colors shadow-sm"><Plus className="w-4 h-4" /></button> 
+                               : <button onClick={() => {const n=[...searchData.refineQueries]; n.splice(index,1); searchData.setRefineQueries(n);}} className="p-3 text-red-600 bg-red-50 dark:bg-red-900/20 rounded-full hover:bg-red-100 transition-colors shadow-sm"><Minus className="w-4 h-4" /></button>}
+                </div>
+              ))}
             </div>
+
           </div>
         )}
 
-        {/* Filter Panel (Simplified display logic for brevity) */}
+        {/* Filter Panel */}
         <div className={`w-full overflow-hidden transition-all duration-300 ${searchData.showFilters && searchData.allResults.length > 0 ? "max-h-[1200px] opacity-100 mb-6" : "max-h-0 opacity-0 mb-0"}`}>
-          <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border shadow-xl">
+          <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-xl">
              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {/* Checkbox Filters */}
                 {[{title: t.filterResource, data: searchData.availableFilters.resources, state: searchData.selectedResources, set: searchData.setSelectedResources},
                   {title: t.filterMajor, data: searchData.availableFilters.majors, state: searchData.selectedMajors, set: searchData.setSelectedMajors},
                   {title: t.filterAdvisor, data: searchData.availableFilters.advisors, state: searchData.selectedAdvisors, set: searchData.setSelectedAdvisors}
                  ].map(group => (
                   <div key={group.title}>
-                    <span className="block text-sm font-bold mb-3 border-b pb-2">{group.title}</span>
-                    <div className="space-y-2 max-h-56 overflow-y-auto">
+                    <span className="block text-sm font-bold mb-3 border-b pb-2 dark:border-slate-700 dark:text-white">{group.title}</span>
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-2 custom-scrollbar">
                       {group.data.map(f => (
-                        <label key={f.val} className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
-                          <input type="checkbox" checked={group.state.includes(f.val)} onChange={() => group.set(group.state.includes(f.val) ? group.state.filter(i => i!==f.val) : [...group.state, f.val])} className="w-4 h-4 mt-0.5 rounded text-blue-600" />
+                        <label key={f.val} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                          <input type="checkbox" checked={group.state.includes(f.val)} onChange={() => group.set(group.state.includes(f.val) ? group.state.filter((i: string) => i!==f.val) : [...group.state, f.val])} className="w-4 h-4 mt-0.5 rounded text-blue-600" />
                           <span>{f.val} ({f.count})</span>
                         </label>
                       ))}
@@ -320,18 +306,26 @@ export default function Home() {
                  
                  {/* Year Filter */}
                  <div>
-                    <span className="block text-sm font-bold mb-3 border-b pb-2">{t.filterYear}</span>
-                    <div className="flex flex-col gap-4 bg-slate-50 p-4 rounded-xl border">
-                      <div className="flex justify-between items-center text-sm font-semibold">
-                        <input type="number" value={searchData.yearMin} onChange={e => searchData.setYearMin(e.target.value===""?"":Number(e.target.value))} className="w-20 px-2 py-1 rounded-lg border text-center" /> - 
-                        <input type="number" value={searchData.yearMax} onChange={e => searchData.setYearMax(e.target.value===""?"":Number(e.target.value))} className="w-20 px-2 py-1 rounded-lg border text-center" />
+                    <span className="block text-sm font-bold mb-3 border-b pb-2 dark:border-slate-700 dark:text-white">{t.filterYear}</span>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex gap-2">
+                        <button onClick={() => searchData.applyQuickYear(5)} className="flex-1 px-2 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-lg transition-colors border border-blue-200 dark:border-blue-800">
+                          {t.quick5Years}
+                        </button>
+                        <button onClick={() => searchData.applyQuickYear(10)} className="flex-1 px-2 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-lg transition-colors border border-indigo-200 dark:border-indigo-800">
+                          {t.quick10Years}
+                        </button>
                       </div>
-                      <div className="relative w-full h-1.5 bg-slate-300 rounded-full my-2">
-                        <div className="absolute h-full bg-blue-600 rounded-full" style={{ left: `${sliderMinPos}%`, right: `${100 - sliderMaxPos}%` }} />
-                        <input type="range" min={searchData.globalMinYear} max={searchData.globalMaxYear} value={currentYearMin} onChange={e => searchData.setYearMin(Math.min(Number(e.target.value), currentYearMax-1))} className="dual-slider-input" />
-                        <input type="range" min={searchData.globalMinYear} max={searchData.globalMaxYear} value={currentYearMax} onChange={e => searchData.setYearMax(Math.max(Number(e.target.value), currentYearMin+1))} className="dual-slider-input" />
+                      
+                      <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 mt-2">
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400">ระบุช่วงปี (มีข้อมูลตั้งแต่ {searchData.globalMinYear} - {searchData.globalMaxYear})</label>
+                        <div className="flex justify-between items-center text-sm font-semibold mt-1">
+                          <input type="number" placeholder={String(searchData.globalMinYear)} value={searchData.yearMin} onChange={e => searchData.setYearMin(e.target.value===""?"":Number(e.target.value))} className="w-24 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 outline-none focus:border-blue-500 text-center dark:bg-slate-900 dark:text-white" /> 
+                          <span className="text-slate-400">-</span> 
+                          <input type="number" placeholder={String(searchData.globalMaxYear)} value={searchData.yearMax} onChange={e => searchData.setYearMax(e.target.value===""?"":Number(e.target.value))} className="w-24 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 outline-none focus:border-blue-500 text-center dark:bg-slate-900 dark:text-white" />
+                        </div>
+                        <button onClick={() => {searchData.setYearMin(""); searchData.setYearMax("");}} className="text-xs font-bold text-red-500 text-right w-full mt-2 hover:text-red-600">ล้างค่าปี</button>
                       </div>
-                      <button onClick={() => {searchData.setYearMin(""); searchData.setYearMax("");}} className="text-[11px] font-bold text-red-500 text-right w-full mt-2">ล้างค่าปี</button>
                     </div>
                  </div>
              </div>
@@ -340,8 +334,29 @@ export default function Home() {
 
         {/* Results List */}
         <div className="w-full z-10 space-y-4 pb-20">
-          {searchData.isLoading && <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" /></div>}
-          {!searchData.isLoading && searchData.hasSearched && searchData.filteredAndSortedResults.length === 0 && <div className="text-center py-16 bg-white rounded-3xl font-bold text-lg">{t.noResults}</div>}
+          
+          {/* Skeleton Loading */}
+          {searchData.isLoading && (
+            <div className="space-y-4 mt-4">
+               {[...Array(3)].map((_, i) => (
+                 <div key={i} className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-5 md:p-8 shadow-sm flex flex-col gap-4 animate-pulse">
+                    <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2"></div>
+                    <div className="flex gap-3 mt-4">
+                      <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-full w-24"></div>
+                      <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-full w-32"></div>
+                      <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-full w-20"></div>
+                    </div>
+                    <div className="flex justify-between items-center mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                      <div className="flex gap-2"><div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-16"></div><div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-16"></div></div>
+                      <div className="flex gap-2"><div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-24"></div><div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-24"></div></div>
+                    </div>
+                 </div>
+               ))}
+            </div>
+          )}
+
+          {!searchData.isLoading && searchData.hasSearched && searchData.filteredAndSortedResults.length === 0 && <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 font-bold text-lg dark:text-white">{t.noResults}</div>}
           
           {!searchData.isLoading && searchData.paginatedResults.map((item, i) => (
             <ThesisCard key={i} item={item} t={t} searchMode={searchData.searchMode} onSelect={setSelectedThesis} onTagClick={handleTagClick} onTrackStat={searchData.trackStat} getPreviewUrl={getPreviewUrl} getDirectDownloadUrl={getDirectDownloadUrl} />
@@ -349,11 +364,11 @@ export default function Home() {
 
           {/* Pagination */}
           {!searchData.isLoading && searchData.totalPages > 1 && (
-            <div className="flex justify-end mt-8 pt-6 border-t">
+            <div className="flex justify-end mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-1">
-                <button onClick={() => searchData.setCurrentPage(p => Math.max(1, p-1))} disabled={searchData.currentPage===1} className="p-2 rounded-lg border bg-white disabled:opacity-50"><ChevronLeft className="w-5 h-5" /></button>
-                <div className="flex items-center gap-1 px-3"><span className="text-sm font-bold text-blue-600">{t.page} {searchData.currentPage}</span><span className="text-sm text-slate-500">{t.of} {searchData.totalPages}</span></div>
-                <button onClick={() => searchData.setCurrentPage(p => Math.min(searchData.totalPages, p+1))} disabled={searchData.currentPage===searchData.totalPages} className="p-2 rounded-lg border bg-white disabled:opacity-50"><ChevronRight className="w-5 h-5" /></button>
+                <button onClick={() => searchData.setCurrentPage(p => Math.max(1, p-1))} disabled={searchData.currentPage===1} className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 disabled:opacity-50"><ChevronLeft className="w-5 h-5" /></button>
+                <div className="flex items-center gap-1 px-3"><span className="text-sm font-bold text-blue-600 dark:text-blue-400">{t.page} {searchData.currentPage}</span><span className="text-sm text-slate-500 dark:text-slate-400">{t.of} {searchData.totalPages}</span></div>
+                <button onClick={() => searchData.setCurrentPage(p => Math.min(searchData.totalPages, p+1))} disabled={searchData.currentPage===searchData.totalPages} className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 disabled:opacity-50"><ChevronRight className="w-5 h-5" /></button>
               </div>
             </div>
           )}

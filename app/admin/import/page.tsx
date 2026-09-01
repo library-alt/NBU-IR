@@ -1,19 +1,26 @@
 // app/admin/import/page.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Papa from "papaparse";
-import { UploadCloud, FileUp, Play, CheckCircle2, AlertCircle, AlertTriangle, Loader2, RefreshCw } from "lucide-react";
+import { UploadCloud, FileUp, Play, CheckCircle2, AlertCircle, AlertTriangle, Loader2, RefreshCw, XCircle } from "lucide-react";
 
 export default function ImportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCancelled, setIsCancelled] = useState(false);
   
-  const [progress, setProgress] = useState({ current: 0, total: 0, success: 0, duplicate: 0, fail: 0 });
-  const [logs, setLogs] = useState<{title: string, status: 'success'|'error'|'duplicate', msg?: string}[]>([]);
-  
+  // ใช้ useRef ควบคุมการหยุดการทำงานกลางคัน
+  const cancelFlagRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [progress, setProgress] = useState({ current: 0, total: 0, success: 0, duplicate: 0, fail: 0 });
+  const [logs, setLogs] = useState<{title: string, status: 'success'|'error'|'duplicate'|'cancel', msg?: string}[]>([]);
+
+  useEffect(() => {
+    cancelFlagRef.current = isCancelled;
+  }, [isCancelled]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -27,6 +34,7 @@ export default function ImportPage() {
         setPreviewData(results.data);
         setProgress({ current: 0, total: results.data.length, success: 0, duplicate: 0, fail: 0 });
         setLogs([]);
+        setIsCancelled(false);
       },
     });
   };
@@ -36,12 +44,22 @@ export default function ImportPage() {
     if (!confirm(`คุณกำลังจะนำเข้าข้อมูลจำนวน ${previewData.length} รายการ\n(ระบบจะใช้เวลาสักครู่ในการประมวลผล)`)) return;
 
     setIsUploading(true);
+    setIsCancelled(false);
+    cancelFlagRef.current = false;
+    
     let successCount = 0;
     let duplicateCount = 0;
     let failCount = 0;
     const newLogs: typeof logs = [];
 
     for (let i = 0; i < previewData.length; i++) {
+      // ⭐️ ตรวจสอบว่าผู้ใช้กดปุ่มหยุดการทำงานหรือยัง
+      if (cancelFlagRef.current) {
+        newLogs.unshift({ title: 'หยุดการทำงานโดยผู้ใช้', status: 'cancel', msg: `นำเข้าสำเร็จ ${successCount} จากทั้งหมด ${i} รายการ` });
+        setLogs([...newLogs]);
+        break; // ออกจาก Loop ทันที
+      }
+
       const row = previewData[i];
       setProgress(prev => ({ ...prev, current: i + 1 }));
 
@@ -71,6 +89,7 @@ export default function ImportPage() {
         newLogs.unshift({ title: row['ชื่อวิทยานิพนธ์'] || `Row ${i+1}`, status: 'error', msg: err.message });
       }
 
+      // อัปเดต UI ให้เห็นความคืบหน้าแบบ Real-time
       setLogs([...newLogs]);
       setProgress(prev => ({ ...prev, success: successCount, duplicate: duplicateCount, fail: failCount }));
     }
@@ -78,11 +97,16 @@ export default function ImportPage() {
     setIsUploading(false);
   };
 
+  const handleCancel = () => {
+    setIsCancelled(true);
+  };
+
   const handleReset = () => {
     setFile(null);
     setPreviewData([]);
     setProgress({ current: 0, total: 0, success: 0, duplicate: 0, fail: 0 });
     setLogs([]);
+    setIsCancelled(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -96,7 +120,6 @@ export default function ImportPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* คอลัมน์ซ้าย */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <h2 className="font-bold text-lg mb-4 border-b pb-2">1. เลือกไฟล์ CSV</h2>
@@ -110,7 +133,11 @@ export default function ImportPage() {
                 <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
                 <p className="font-bold text-emerald-700">{file.name}</p>
                 <p className="text-sm text-emerald-600 mt-1">พบข้อมูลทั้งหมด {previewData.length} รายการ</p>
-                {!isUploading && progress.current === 0 && <button onClick={handleReset} className="mt-4 px-4 py-2 bg-white border text-emerald-600 rounded-lg text-sm font-bold shadow-sm hover:bg-emerald-100">เปลี่ยนไฟล์</button>}
+                {!isUploading && (
+                  <button onClick={handleReset} className="mt-4 px-4 py-2 bg-white border text-emerald-600 rounded-lg text-sm font-bold shadow-sm hover:bg-emerald-100">
+                    เปลี่ยนไฟล์
+                  </button>
+                )}
               </div>
             )}
             <input type="file" accept=".csv" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
@@ -119,10 +146,16 @@ export default function ImportPage() {
           {previewData.length > 0 && (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <h2 className="font-bold text-lg mb-4 border-b pb-2">2. เริ่มนำเข้าข้อมูล</h2>
-              {isUploading || progress.current > 0 ? (
+              
+              {(isUploading || progress.current > 0) ? (
                 <div className="space-y-4">
-                  <div className="flex justify-between text-sm font-bold"><span className="text-blue-600">กำลังดำเนินการ... {progress.current} / {progress.total}</span><span className="text-slate-500">{Math.round((progress.current / progress.total) * 100)}%</span></div>
-                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${(progress.current / progress.total) * 100}%` }}></div></div>
+                  <div className="flex justify-between text-sm font-bold">
+                    <span className="text-blue-600">กำลังดำเนินการ... {progress.current} / {progress.total}</span>
+                    <span className="text-slate-500">{Math.round((progress.current / progress.total) * 100)}%</span>
+                  </div>
+                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${(progress.current / progress.total) * 100}%` }}></div>
+                  </div>
                   
                   <div className="flex flex-wrap gap-3 text-sm font-bold mt-2">
                     <span className="text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> สำเร็จ: {progress.success}</span>
@@ -130,14 +163,23 @@ export default function ImportPage() {
                     <span className="text-red-500 flex items-center gap-1"><AlertCircle className="w-4 h-4" /> ล้มเหลว: {progress.fail}</span>
                   </div>
                   
-                  {!isUploading && progress.current === progress.total && (
+                  {/* ⭐️ เพิ่มปุ่มหยุดการทำงาน (แสดงเฉพาะตอนกำลังโหลด) */}
+                  {isUploading && (
+                    <button onClick={handleCancel} className="w-full mt-4 flex justify-center items-center gap-2 bg-red-100 text-red-600 border border-red-200 py-3 rounded-xl font-bold hover:bg-red-200 transition-colors">
+                      <XCircle className="w-5 h-5" /> หยุดการนำเข้า
+                    </button>
+                  )}
+
+                  {!isUploading && (
                      <button onClick={handleReset} className="w-full mt-2 flex justify-center items-center gap-2 bg-slate-800 text-white py-3 rounded-xl font-bold hover:bg-slate-700">
                        <RefreshCw className="w-5 h-5" /> นำเข้าไฟล์ใหม่
                      </button>
                   )}
                 </div>
               ) : (
-                <button onClick={startImport} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold shadow-md"><Play className="w-5 h-5" /> ยืนยันการนำเข้าข้อมูล</button>
+                <button onClick={startImport} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold shadow-md">
+                  <Play className="w-5 h-5" /> ยืนยันการนำเข้าข้อมูล
+                </button>
               )}
             </div>
           )}
@@ -150,14 +192,21 @@ export default function ImportPage() {
               <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center"><h2 className="font-bold text-slate-700">ตัวอย่างข้อมูลก่อนนำเข้า (Preview ทั้งหมด)</h2></div>
               <div className="overflow-auto flex-1 p-0">
                 <table className="w-full text-left text-sm border-collapse whitespace-nowrap">
-                  <thead><tr className="bg-slate-100 text-slate-500"><th className="p-3 font-bold border-b">ชื่อวิทยานิพนธ์</th><th className="p-3 font-bold border-b">ผู้แต่ง</th><th className="p-3 font-bold border-b">สาขาวิชา</th></tr></thead>
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-500">
+                      <th className="p-3 font-bold border-b">ชื่อวิทยานิพนธ์</th>
+                      <th className="p-3 font-bold border-b">ผู้แต่ง</th>
+                      <th className="p-3 font-bold border-b">สาขาวิชา</th>
+                      <th className="p-3 font-bold border-b">ประเภท</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    {/* ⭐️ แก้ไขให้ Preview แสดงข้อมูลทุกแถวตรงนี้ครับ */}
                     {previewData.map((row, idx) => (
                       <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="p-3 text-blue-700 font-semibold truncate max-w-xs">{row['ชื่อวิทยานิพนธ์'] || '-'}</td>
                         <td className="p-3">{row['ชื่อผู้จัดทำ'] || '-'}</td>
                         <td className="p-3 text-slate-500">{row['สาขาวิชา'] || '-'}</td>
+                        <td className="p-3 text-slate-500">{row['ประเภททรัพยากร'] || row['ประเภท'] || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -176,10 +225,12 @@ export default function ImportPage() {
                   <div key={idx} className={`p-2 rounded flex items-start gap-2 
                     ${log.status === 'success' ? 'text-emerald-400 bg-emerald-400/10' : 
                       log.status === 'duplicate' ? 'text-amber-400 bg-amber-400/10' : 
+                      log.status === 'cancel' ? 'text-blue-400 bg-blue-400/10' : 
                       'text-red-400 bg-red-400/10'}`}
                   >
                     {log.status === 'success' && <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />}
                     {log.status === 'duplicate' && <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />}
+                    {log.status === 'cancel' && <XCircle className="w-4 h-4 shrink-0 mt-0.5" />}
                     {log.status === 'error' && <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />}
                     <div>
                       <span className="font-bold">[{log.status.toUpperCase()}]</span> {log.title}
