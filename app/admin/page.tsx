@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { Search, Edit, Trash2, Loader2, X, Save, Plus, Minus, BarChart3, Filter } from "lucide-react";
-import { Thesis } from "../../types/thesis";
+import { Thesis } from "../types/thesis";
 
 export default function AdminDashboard() {
   const d = new Date();
