@@ -41,12 +41,23 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
     } catch (e) { console.error("Failed to load real majors:", e); }
   };
 
+  // ⭐️ แก้ไขฟังก์ชันนี้: เมื่อค้นหาใหม่ ให้รีเซ็ต Filter ทั้งหมด
   const executeSearch = async (searchText: string, field: string, mode: string, extras: any[], isExactMatch: boolean = false) => {
     if (!searchText.trim() && extras.length === 0) return;
+    
     setIsLoading(true);
     setHasSearched(true);
     setShowFilters(false);
+
+    // ⭐️ ล้างค่าตัวกรองทั้งหมด เพื่อให้เป็นการค้นหาใหม่จริงๆ
     setRefineQueries([{ text: '', field: 'all', operator: 'AND' }]);
+    setSelectedResources([]);
+    setSelectedYears([]);
+    setSelectedAdvisors([]);
+    setSelectedMajors([]);
+    setYearMin("");
+    setYearMax("");
+    setCurrentPage(1);
     
     try {
       const res = await fetch('/api/search', {
@@ -60,7 +71,6 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
       
       if (data.results) {
         setAllResults(data.results);
-        setYearMin(""); setYearMax("");
       }
     } catch (error: any) {
       console.error("Search failed:", error);
@@ -77,7 +87,6 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
     const majorCount: Record<string, number> = {};
 
     allResults.forEach(item => {
-      // ⭐️ เปลี่ยนจาก education_level เป็น resource_type ให้ตรงกับชื่อตัวกรอง
       if (item.resource_type) resCount[item.resource_type] = (resCount[item.resource_type] || 0) + 1;
       if (item.publish_year) yearCount[item.publish_year] = (yearCount[item.publish_year] || 0) + 1;
       if (item.advisor_1) advCount[item.advisor_1] = (advCount[item.advisor_1] || 0) + 1;
@@ -98,7 +107,6 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
   const globalMinYear = useMemo(() => availableFilters.years.length === 0 ? 2500 : Math.min(...availableFilters.years.map(y => Number(y.val))), [availableFilters]);
   const globalMaxYear = useMemo(() => availableFilters.years.length === 0 ? new Date().getFullYear() + 543 : Math.max(...availableFilters.years.map(y => Number(y.val))), [availableFilters]);
 
-  // ⭐️ ฟังก์ชันจัดการปุ่ม 5 ปี / 10 ปี
   const applyQuickYear = (yearsBack: number) => {
     setYearMin(globalMaxYear - yearsBack + 1);
     setYearMax(globalMaxYear);
@@ -107,7 +115,6 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
 
   const filteredAndSortedResults = useMemo(() => {
     let filtered = allResults.filter(item => {
-      // ⭐️ แก้ให้กรองด้วย resource_type
       const matchResource = selectedResources.length === 0 || selectedResources.includes(item.resource_type!);
       const matchMajor = selectedMajors.length === 0 || selectedMajors.includes(item.major?.trim().replace(/\s+/g, ' '));
       const matchAdvisor = selectedAdvisors.length === 0 || 

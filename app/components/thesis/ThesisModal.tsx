@@ -15,20 +15,11 @@ interface ThesisModalProps {
   getDirectDownloadUrl: (url: string) => string;
 }
 
-export function ThesisModal({
-  thesis,
-  onClose,
-  t,
-  onTagClick,
-  onTrackStat,
-  getPreviewUrl,
-  getDirectDownloadUrl
-}: ThesisModalProps) {
+export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPreviewUrl, getDirectDownloadUrl }: ThesisModalProps) {
   const [showCitationModal, setShowCitationModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // ฟังก์ชันสร้าง Citation
   const generateCitation = (item: Thesis, style: string) => {
     const author = (item.author || "ไม่ปรากฏชื่อผู้แต่ง").trim().replace(/\s+/g, '  ');
     const year = item.publish_year || "ม.ป.ป.";
@@ -101,6 +92,18 @@ export function ThesisModal({
     onClose();
   };
 
+  // ⭐️ ฟังก์ชันแยกชื่อผู้แต่งแบบแม่นยำ
+  const renderAuthors = (authorString: string) => {
+    if (!authorString) return "-";
+    const authors = authorString.split(/\s*,\s*|\s+และ\s+|\s+and\s+/i).map(a => a.trim()).filter(a => a);
+    return authors.map((a, idx) => (
+      <span key={idx}>
+        <button onClick={() => handleTag("author", a)} className="text-blue-600 hover:underline">{a}</button>
+        {idx < authors.length - 1 && <span className="text-slate-500 mr-1">,</span>}
+      </span>
+    ));
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
       <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 relative">
@@ -113,7 +116,11 @@ export function ThesisModal({
           {thesis.title_en && <h3 className="font-semibold text-slate-600 dark:text-slate-400 mb-6 pr-8 leading-snug text-lg md:text-xl italic">{thesis.title_en}</h3>}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-8 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 text-sm md:text-base">
-            <p><b>{t.author}</b> {thesis.author ? <button onClick={() => handleTag("author", thesis.author)} className="text-blue-600 hover:underline">{thesis.author}</button> : "-"}</p>
+            {/* ⭐️ เรียกใช้ฟังก์ชันแยกชื่อผู้แต่ง */}
+            <div className="flex flex-wrap gap-1 items-start">
+              <b>{t.author}</b> <div className="inline-block">{renderAuthors(thesis.author)}</div>
+            </div>
+            
             <p><b>{t.publishYear}</b> {thesis.publish_year ? `${thesis.publish_year}` : <span className="text-red-500 font-semibold">{t.noYear}</span>}</p>
             <p><b>{t.eduLevel}</b> {thesis.education_level || "-"}</p>
             <p className="md:col-span-2"><b>{t.major}</b> {thesis.major ? <button onClick={() => handleTag("major", thesis.major.trim().replace(/\s+/g, ' '))} className="text-blue-600 hover:underline text-left">{thesis.major.trim().replace(/\s+/g, ' ')}</button> : "-"}</p>
@@ -129,6 +136,21 @@ export function ThesisModal({
               <h4 className="font-bold text-black dark:text-white mb-3 text-lg border-b border-slate-200 dark:border-slate-700 pb-2">{t.abstractTh}</h4>
               <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line bg-slate-50/30 dark:bg-slate-900/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">{thesis.abstract_th || "-"}</p>
             </div>
+            {/* ⭐️ แสดงกล่อง AI Summary ถ้ามีข้อมูล */}
+          {thesis.ai_summary && (
+            <div className="mb-8 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-purple-500 rounded-l-2xl"></div>
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 p-6 md:p-8 rounded-2xl border border-indigo-100 dark:border-indigo-900/50">
+                <h4 className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 mb-4 flex items-center gap-2 text-lg">
+                  ✨ สรุปย่อโดย AI (AI Executive Summary)
+                </h4>
+                <div className="text-slate-700 dark:text-slate-300 leading-loose whitespace-pre-line text-[15px]">
+                  {thesis.ai_summary}
+                </div>
+              </div>
+            </div>
+          )}
+
             {thesis.abstract_en && (
               <div>
                 <h4 className="font-bold text-black dark:text-white mb-3 text-lg border-b border-slate-200 dark:border-slate-700 pb-2">{t.abstractEn}</h4>

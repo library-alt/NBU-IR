@@ -15,6 +15,7 @@ import { useSearch } from "./hooks/useSearch";
 import { ThesisCard } from "./components/thesis/ThesisCard";
 import { ThesisModal } from "./components/thesis/ThesisModal";
 import { StatsModal } from "./components/thesis/StatsModal";
+import { AISummaryModal } from "./components/thesis/AISummaryModal"; // ⭐️ Import เข้ามา
 
 export default function Home() {
   const [lang, setLang] = useState<Lang>('th');
@@ -28,10 +29,12 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   
-  // ⭐️ ตัวแปรควบคุมการซูม (0=เล็ก, 1=กลาง, 2=ใหญ่)
   const [fontSizeIndex, setFontSizeIndex] = useState(1);
   
+  // States Modal
   const [selectedThesis, setSelectedThesis] = useState<Thesis | null>(null);
+  const [selectedAISummary, setSelectedAISummary] = useState<Thesis | null>(null); // ⭐️ State สำหรับเปิดหน้าต่าง AI โดยเฉพาะ
+  
   const [showMajorsList, setShowMajorsList] = useState(false);
 
   const searchData = useSearch(lang);
@@ -82,7 +85,6 @@ export default function Home() {
   return (
     <main className={`min-h-screen flex flex-col relative overflow-x-hidden transition-colors duration-500 ${isDark ? 'bg-[#080d1a]' : 'bg-slate-50'} ${searchData.hasSearched ? 'justify-start pt-10' : 'justify-center'}`}>
       
-      {/* ⭐️ ใส่โค้ด CSS ซูมขนาดตัวอักษรของ Root HTML ให้ทุกอย่างขยายตามแบบ 100% */}
       <style dangerouslySetInnerHTML={{ __html: `html { font-size: ${fontSizeIndex === 0 ? '14px' : fontSizeIndex === 1 ? '16px' : '18px'} !important; transition: font-size 0.3s ease; }` }} />
 
       {/* Top Navbar Items */}
@@ -131,7 +133,7 @@ export default function Home() {
           <Image src="/nbu-logo.png" alt="NBU Logo" width={searchData.hasSearched ? 200 : 350} height={100} className="dark:brightness-125 dark:contrast-110 object-contain transition-all duration-500" />
         </div>
 
-        <div className="w-full max-w-3xl flex flex-col items-center">
+        <div className="w-full flex flex-col items-center">
           <div className="relative group w-full mb-6 z-20">
             <div className="absolute -inset-y-4 -inset-x-2 md:-inset-x-8 bg-rainbow-glow rounded-[100px] blur-[60px] opacity-30 group-hover:opacity-60 transition-opacity duration-700 pointer-events-none z-0" />
             
@@ -196,7 +198,7 @@ export default function Home() {
             </form>
           </div>
 
-          {/* ⭐️ Majors Suggestion (เพิ่ม margin bottom เพื่อไม่ให้ชิดแถบด้านล่างเกินไป) */}
+          {/* Majors Suggestion */}
           {searchData.dynamicMajors.length > 0 && (
             <div className="w-full flex flex-col items-center relative z-10 mb-8">
               <button onClick={() => setShowMajorsList(!showMajorsList)} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-8 rounded-2xl flex items-center gap-3 shadow-[0_6px_0_#1e3a8a] active:shadow-[0_0px_0_#1e3a8a] active:translate-y-[6px] transition-all">
@@ -206,7 +208,13 @@ export default function Home() {
                 <div className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4 flex items-center justify-center gap-1.5"><Tag className="w-4 h-4" /> {t.quickSelectTitle}</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {searchData.dynamicMajors.map(item => {
-                    const displayMajor = (lang === 'en' || lang === 'ch') && MAJOR_MAPPING[item.major]?.en ? MAJOR_MAPPING[item.major].en : item.major;
+                    let displayMajor = item.major;
+                    if (lang !== 'th' && MAJOR_MAPPING[item.major]?.en) {
+                       displayMajor = MAJOR_MAPPING[item.major].en;
+                    } else if (lang === 'th' && item.major.startsWith('ด้าน')) {
+                       displayMajor = 'บทความวิจัยการประชุมวิชาการฯ ' + item.major;
+                    }
+                    
                     const isSelected = searchData.query === item.major && searchData.searchField === "major";
 
                     return (
@@ -236,11 +244,9 @@ export default function Home() {
 
         <div id="results-section" className="w-full pt-2"></div>
 
-        {/* ⭐️ Search Results Header & Filter Bar (ออกแบบ 2 บรรทัด ให้ช่องค้นหากว้างสะใจ) */}
+        {/* Search Results Header & Filter Bar */}
         {searchData.hasSearched && !searchData.isLoading && searchData.allResults.length > 0 && (
           <div className="w-full flex flex-col gap-4 mb-6 px-5 py-4 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-gray-200 dark:border-slate-800">
-            
-            {/* บรรทัดที่ 1: ข้อมูลจำนวน และ เครื่องมือจัดเรียง */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-4">
                 <p className="font-semibold text-slate-500 whitespace-nowrap">{t.found} <span className="text-blue-600 font-bold text-xl">{searchData.filteredAndSortedResults.length}</span> {t.items}</p>
@@ -265,7 +271,6 @@ export default function Home() {
               </div>
             </div>
             
-            {/* บรรทัดที่ 2: ช่องค้นหาในผลลัพธ์ (กว้างเต็มพื้นที่) */}
             <div className="w-full flex flex-col gap-2">
               {searchData.refineQueries.map((q, index) => (
                 <div key={index} className="flex items-center gap-2">
@@ -279,7 +284,6 @@ export default function Home() {
                 </div>
               ))}
             </div>
-
           </div>
         )}
 
@@ -359,7 +363,18 @@ export default function Home() {
           {!searchData.isLoading && searchData.hasSearched && searchData.filteredAndSortedResults.length === 0 && <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 font-bold text-lg dark:text-white">{t.noResults}</div>}
           
           {!searchData.isLoading && searchData.paginatedResults.map((item, i) => (
-            <ThesisCard key={i} item={item} t={t} searchMode={searchData.searchMode} onSelect={setSelectedThesis} onTagClick={handleTagClick} onTrackStat={searchData.trackStat} getPreviewUrl={getPreviewUrl} getDirectDownloadUrl={getDirectDownloadUrl} />
+            <ThesisCard 
+              key={i} 
+              item={item} 
+              t={t} 
+              searchMode={searchData.searchMode} 
+              onSelect={setSelectedThesis} 
+              onAISummarySelect={setSelectedAISummary} // ⭐️ ส่ง prop นี้ให้ปุ่มสีแดง
+              onTagClick={handleTagClick} 
+              onTrackStat={searchData.trackStat} 
+              getPreviewUrl={getPreviewUrl} 
+              getDirectDownloadUrl={getDirectDownloadUrl} 
+            />
           ))}
 
           {/* Pagination */}
@@ -375,10 +390,29 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Modals */}
-      {selectedThesis && (
-        <ThesisModal thesis={selectedThesis} onClose={() => setSelectedThesis(null)} t={t} onTagClick={handleTagClick} onTrackStat={searchData.trackStat} getPreviewUrl={getPreviewUrl} getDirectDownloadUrl={getDirectDownloadUrl} />
+      {/* ⭐️ Modal สรุปย่อโดย AI (เปิดเมื่อกดปุ่มสีแดง) */}
+      {selectedAISummary && (
+        <AISummaryModal 
+          thesis={selectedAISummary} 
+          onClose={() => setSelectedAISummary(null)} 
+          onOpenFullDetails={(thesis) => setSelectedThesis(thesis)} 
+        />
       )}
+
+      {/* Modal รายละเอียดฉบับเต็ม (เปิดเมื่อกดชื่อเรื่อง) */}
+      {selectedThesis && (
+        <ThesisModal 
+          thesis={selectedThesis} 
+          onClose={() => setSelectedThesis(null)} 
+          t={t} 
+          onTagClick={handleTagClick} 
+          onTrackStat={searchData.trackStat} 
+          getPreviewUrl={getPreviewUrl} 
+          getDirectDownloadUrl={getDirectDownloadUrl} 
+        />
+      )}
+
+      {/* Modal สถิติภาพรวม */}
       {showStatsModal && (
         <StatsModal onClose={() => setShowStatsModal(false)} t={t} />
       )}

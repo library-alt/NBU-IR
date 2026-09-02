@@ -1,5 +1,5 @@
 // components/thesis/ThesisCard.tsx
-import { User, BookOpen, GraduationCap, Calendar, Eye, Download, ExternalLink, FileText } from "lucide-react"; // ⭐️ นำเข้า FileText เพิ่ม
+import { User, BookOpen, GraduationCap, Calendar, Eye, Download, ExternalLink, FileText, Sparkles } from "lucide-react";
 import { Thesis } from "../../types/thesis";
 
 interface ThesisCardProps {
@@ -7,15 +7,28 @@ interface ThesisCardProps {
   t: any; 
   searchMode: string;
   onSelect: (item: Thesis) => void;
+  onAISummarySelect?: (item: Thesis) => void; // ⭐️ ตั้งเป็น optional เผื่อไม่ได้ส่งมา
   onTagClick: (field: string, value: string) => void;
   onTrackStat: (id: string | number, type: 'view' | 'download') => void;
   getPreviewUrl: (url: string) => string;
   getDirectDownloadUrl: (url: string) => string;
 }
 
-export function ThesisCard({
-  item, t, searchMode, onSelect, onTagClick, onTrackStat, getPreviewUrl, getDirectDownloadUrl
+export function ThesisCard({ 
+  item, t, searchMode, onSelect, onAISummarySelect, onTagClick, onTrackStat, getPreviewUrl, getDirectDownloadUrl 
 }: ThesisCardProps) {
+  
+  const renderAuthors = (authorString: string) => {
+    if (!authorString) return "-";
+    const authors = authorString.split(/\s*,\s*|\s+และ\s+|\s+and\s+/i).map(a => a.trim()).filter(a => a);
+    return authors.map((a, idx) => (
+      <span key={idx} className="inline-flex items-center">
+        <button onClick={(e) => { e.stopPropagation(); onTagClick("author", a); }} className="hover:text-blue-700 hover:underline transition-colors">{a}</button>
+        {idx < authors.length - 1 && <span className="text-slate-400 mx-1">,</span>}
+      </span>
+    ));
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl p-5 md:p-8 shadow-sm hover:shadow-lg transition-all text-left group">
       
@@ -33,11 +46,11 @@ export function ThesisCard({
 
       {/* Meta Tags */}
       <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400 mb-5 font-medium">
-        <button onClick={() => onTagClick("author", item.author)} className="bg-gray-100 dark:bg-slate-800 px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-blue-100 hover:text-blue-700 transition-colors">
-          <User className="w-3.5 h-3.5" /> {item.author || "-"}
-        </button>
+        <div className="bg-gray-100 dark:bg-slate-800 px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-colors">
+          <User className="w-3.5 h-3.5 text-slate-500" /> 
+          <div className="flex flex-wrap">{renderAuthors(item.author)}</div>
+        </div>
         
-        {/* ⭐️ แท็กประเภททรัพยากร (เพิ่มใหม่) */}
         {item.resource_type && (
           <button onClick={() => onTagClick("all", item.resource_type)} className="bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300 px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-purple-100 transition-colors border border-purple-100 dark:border-purple-800/50">
             <FileText className="w-3.5 h-3.5" /> {item.resource_type}
@@ -63,7 +76,7 @@ export function ThesisCard({
         )}
       </div>
 
-      {/* Footer: Keywords & Action Buttons */}
+      {/* Footer */}
       <div className="flex flex-wrap items-center justify-between gap-5 pt-4 border-t border-slate-100 dark:border-slate-800">
         <div className="flex flex-wrap gap-2 flex-1">
           {item.keywords?.split(/[,，\n]+/).filter((k: string) => k.trim() !== '').map((kw: string, i: number) => (
@@ -73,15 +86,34 @@ export function ThesisCard({
           ))}
         </div>
         
-        <div className="flex flex-wrap gap-3 justify-start sm:justify-end items-center w-full md:w-auto mt-3 md:mt-0">
-          <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold mr-2 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
-            <span title="ยอดเข้าชม" className="flex items-center gap-1.5"><Eye className="w-5 h-5 text-blue-500" />{item.view_count || 0}</span>
-            <span className="w-px h-5 bg-slate-300 dark:bg-slate-600"></span>
-            <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5"><Download className="w-5 h-5 text-emerald-500" />{item.download_count || 0}</span>
+        <div className="flex flex-wrap gap-2.5 justify-start sm:justify-end items-center w-full md:w-auto mt-3 md:mt-0">
+          <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold mr-1 bg-slate-50 dark:bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
+            <span title="ยอดเข้าชม" className="flex items-center gap-1.5"><Eye className="w-4 h-4 text-blue-500" />{item.view_count || 0}</span>
+            <span className="w-px h-4 bg-slate-300 dark:bg-slate-600"></span>
+            <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5"><Download className="w-4 h-4 text-emerald-500" />{item.download_count || 0}</span>
           </div>
 
+          {/* ⭐️ ดักจับความปลอดภัย: ถ้ามีฟังก์ชัน onAISummarySelect ให้เรียกใช้ ถ้าไม่มีให้ใช้ onSelect แทน */}
+          {item.ai_summary && (
+            <button
+              onClick={() => { 
+                onTrackStat(item.id, 'view'); 
+                if (typeof onAISummarySelect === 'function') {
+                  onAISummarySelect(item);
+                } else {
+                  onSelect(item);
+                }
+              }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 px-3.5 py-2 rounded-xl transition-all text-sm shadow-md hover:shadow-red-500/25 hover:scale-[1.02] active:scale-95 cursor-pointer"
+              title="อ่านบทสรุปย่อโดย AI"
+            >
+              <Sparkles className="w-4 h-4 text-amber-200 animate-pulse" />
+              <span>AI สรุป</span>
+            </button>
+          )}
+
           {item.drive_url && (
-            <a href={getPreviewUrl(item.drive_url)} target="_blank" rel="noreferrer" onClick={() => onTrackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-3.5 py-2 rounded-lg transition-colors text-sm shadow-sm">
+            <a href={getPreviewUrl(item.drive_url)} target="_blank" rel="noreferrer" onClick={() => onTrackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-3.5 py-2 rounded-xl transition-colors text-sm shadow-sm">
               <ExternalLink className="w-4 h-4" /> <span className="hidden sm:inline">{t.viewOnline}</span><span className="sm:hidden">{t.viewOnlineMobile}</span>
             </a>
           )}
@@ -91,8 +123,8 @@ export function ThesisCard({
             </a>
           )}
           {item.tdc_url && (
-            <a href={item.tdc_url} target="_blank" rel="noreferrer" onClick={() => onTrackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-lg transition-colors shadow-sm text-sm">
-              <ExternalLink className="w-5 h-5" /> TDC
+            <a href={item.tdc_url} target="_blank" rel="noreferrer" onClick={() => onTrackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
+              <ExternalLink className="w-4 h-4" /> TDC
             </a>
           )}
         </div>

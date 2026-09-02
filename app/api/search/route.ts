@@ -43,11 +43,13 @@ export async function POST(req: Request) {
       if (timeframe === 'all') {
         const { data: dls } = await supabase.from('theses').select('id, title_th, author, download_count').order('download_count', { ascending: false }).limit(10);
         const { data: vws } = await supabase.from('theses').select('id, title_th, author, view_count').order('view_count', { ascending: false }).limit(10);
-        const { data: sumData } = await supabase.from('theses').select('view_count');
         
-        totalVisits = sumData?.reduce((acc, curr) => acc + (curr.view_count || 0), 0) || 0;
         topDownloads = dls?.map((d: any) => ({ ...d, total_count: d.download_count })) || [];
         topViews = vws?.map((v: any) => ({ ...v, total_count: v.view_count })) || [];
+
+        // ⭐️ แก้ไข: ให้นับจำนวนจาก usage_logs โดยตรง แทนการบวก view_count
+        const { count } = await supabase.from('usage_logs').select('*', { count: 'exact', head: true }).eq('action_type', 'view');
+        totalVisits = count || 0;
       } else {
         const { data: dls } = await supabase.rpc('get_top_stats_by_date', { action_filter: 'download', start_date: startDate, end_date: endDate });
         const { data: vws } = await supabase.rpc('get_top_stats_by_date', { action_filter: 'view', start_date: startDate, end_date: endDate });
@@ -86,7 +88,7 @@ export async function POST(req: Request) {
     let error = null;
     
     // ⭐️ อัปเดต SELECT ให้ครอบคลุมทุกฟิลด์ที่เรามี
-    const SELECT_COLUMNS = 'id, title_th, title_en, author, publish_year, education_level, major, resource_type, abstract_th, abstract_en, advisor_1, advisor_2, advisor_3, tdc_url, drive_url, keywords, view_count, download_count, similarity';
+    const SELECT_COLUMNS = 'id, title_th, title_en, author, publish_year, education_level, major, resource_type, abstract_th, abstract_en, advisor_1, advisor_2, advisor_3, tdc_url, drive_url, keywords, view_count, download_count, similarity, ai_summary';
 
     if (mode === 'Semantic') {
       const embeddingResponse = await openai.embeddings.create({ model: 'text-embedding-3-small', input: cleanRawQuery });

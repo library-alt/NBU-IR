@@ -7,7 +7,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// ดึงข้อมูล (GET) + ระบบค้นหา + แบ่งหน้า (Pagination)
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search') || '';
@@ -28,7 +27,6 @@ export async function GET(req: Request) {
   return NextResponse.json({ data, total: count });
 }
 
-// อัปเดตข้อมูล (PUT)
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
@@ -41,7 +39,6 @@ export async function PUT(req: Request) {
   }
 }
 
-// ลบข้อมูล (DELETE)
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -50,6 +47,48 @@ export async function DELETE(req: Request) {
     if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// ⭐️ ดึงข้อมูลสถิติแยกตามประเภทและสาขาวิชา (ใช้ RPC ไม่มีลิมิต 1,000 แล้ว!)
+export async function POST(req: Request) {
+  try {
+    const { startYear, endYear, startMonth, endMonth } = await req.json();
+
+    // คำนวณช่วงเวลา (รองรับ พ.ศ.)
+    const start = new Date(startYear - 543, startMonth - 1, 1).toISOString();
+    const end = new Date(endYear - 543, endMonth, 0, 23, 59, 59).toISOString();
+
+    // 1. เรียกใช้ Function นับสถิติที่เราเพิ่งสร้าง
+    const { data: statsData, error: statsError } = await supabase.rpc('get_import_stats', {
+      start_date: start,
+      end_date: end
+    });
+
+    if (statsError) throw statsError;
+
+    // 2. ดึงยอดรวมทั้งหมดในช่วงเวลานั้น (ใช้ head: true ไม่เปลืองเน็ตเวิร์ก)
+    const { count: total, error: countError } = await supabase
+      .from('theses')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', start)
+      .lte('created_at', end);
+
+    if (countError) throw countError;
+
+    // แยกข้อมูลออกมาเป็น 2 กลุ่ม
+    const resources = statsData?.filter((item: any) => item.category === 'resource_type').sort((a: any, b: any) => b.count - a.count) || [];
+    const majors = statsData?.filter((item: any) => item.category === 'major') || []; // ไม่ต้อง sort เพราะ DB ทำมาให้แล้ว
+
+    return NextResponse.json({ 
+      resources,
+      majors,
+      total: total || 0
+    });
+
+  } catch (error: any) {
+    console.error("Admin Stats Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

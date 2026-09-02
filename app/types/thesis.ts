@@ -28,3 +28,12 @@ export interface SearchQuery {
   operator: string;
   field: string;
 }
+// types/thesis.ts
+export interface Thesis {
+  id: string | number;
+  title_th: string;
+  // ... ของเดิม ...
+  download_count?: number;
+  similarity?: number;
+  ai_summary?: string; // ⭐️ เพิ่มบรรทัดนี้
+}
