@@ -37,3 +37,10 @@ export interface Thesis {
   similarity?: number;
   ai_summary?: string; // ⭐️ เพิ่มบรรทัดนี้
 }
+// types/thesis.ts
+export interface Thesis {
+  id: string | number;
+  // ... ฟิลด์เดิม ...
+  ai_summary?: string;
+  has_chat?: boolean; // ⭐️ เพิ่มบรรทัดนี้
+}

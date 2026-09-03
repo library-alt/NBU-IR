@@ -88,7 +88,7 @@ export async function POST(req: Request) {
     let error = null;
     
     // ⭐️ อัปเดต SELECT ให้ครอบคลุมทุกฟิลด์ที่เรามี
-    const SELECT_COLUMNS = 'id, title_th, title_en, author, publish_year, education_level, major, resource_type, abstract_th, abstract_en, advisor_1, advisor_2, advisor_3, tdc_url, drive_url, keywords, view_count, download_count, similarity, ai_summary';
+    const SELECT_COLUMNS = 'id, title_th, title_en, author, publish_year, education_level, major, resource_type, abstract_th, abstract_en, advisor_1, advisor_2, advisor_3, tdc_url, drive_url, keywords, view_count, download_count, similarity, ai_summary, has_chat';
 
     if (mode === 'Semantic') {
       const embeddingResponse = await openai.embeddings.create({ model: 'text-embedding-3-small', input: cleanRawQuery });

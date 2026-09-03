@@ -15,7 +15,8 @@ import { useSearch } from "./hooks/useSearch";
 import { ThesisCard } from "./components/thesis/ThesisCard";
 import { ThesisModal } from "./components/thesis/ThesisModal";
 import { StatsModal } from "./components/thesis/StatsModal";
-import { AISummaryModal } from "./components/thesis/AISummaryModal"; // ⭐️ Import เข้ามา
+import { AISummaryModal } from "./components/thesis/AISummaryModal";
+import { ThesisChatModal } from "./components/thesis/ThesisChatModal"; // ⭐️ Import หน้าต่างแชท
 
 export default function Home() {
   const [lang, setLang] = useState<Lang>('th');
@@ -31,9 +32,10 @@ export default function Home() {
   
   const [fontSizeIndex, setFontSizeIndex] = useState(1);
   
-  // States Modal
+  // Modal States
   const [selectedThesis, setSelectedThesis] = useState<Thesis | null>(null);
-  const [selectedAISummary, setSelectedAISummary] = useState<Thesis | null>(null); // ⭐️ State สำหรับเปิดหน้าต่าง AI โดยเฉพาะ
+  const [selectedAISummary, setSelectedAISummary] = useState<Thesis | null>(null);
+  const [selectedChatThesis, setSelectedChatThesis] = useState<Thesis | null>(null); // ⭐️ State สำหรับแชท
   
   const [showMajorsList, setShowMajorsList] = useState(false);
 
@@ -85,9 +87,10 @@ export default function Home() {
   return (
     <main className={`min-h-screen flex flex-col relative overflow-x-hidden transition-colors duration-500 ${isDark ? 'bg-[#080d1a]' : 'bg-slate-50'} ${searchData.hasSearched ? 'justify-start pt-10' : 'justify-center'}`}>
       
+      {/* ซูมฟอนต์ทั้งหน้าจอแบบสัดส่วนสมบูรณ์ */}
       <style dangerouslySetInnerHTML={{ __html: `html { font-size: ${fontSizeIndex === 0 ? '14px' : fontSizeIndex === 1 ? '16px' : '18px'} !important; transition: font-size 0.3s ease; }` }} />
 
-      {/* Top Navbar Items */}
+      {/* Top Navbar */}
       <div className="absolute top-6 left-6 z-50">
         <button onClick={() => setIsSidebarOpen(true)} className="flex items-center justify-center w-10 h-10 rounded-full border shadow-md transition-all duration-300 bg-white hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
           <Menu className="w-5 h-5" />
@@ -169,6 +172,7 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Advanced Search */}
               <div className={`overflow-hidden transition-all duration-300 ease-in-out border-t border-gray-100 dark:border-slate-800 ${searchData.showAdvanced ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0 border-transparent"}`}>
                 <div className="p-5 space-y-4 bg-gray-50/50 dark:bg-slate-900/50 rounded-b-3xl">
                   {searchData.extraQueries.map((q, index) => (
@@ -244,7 +248,7 @@ export default function Home() {
 
         <div id="results-section" className="w-full pt-2"></div>
 
-        {/* Search Results Header & Filter Bar */}
+        {/* Results Header & Tools */}
         {searchData.hasSearched && !searchData.isLoading && searchData.allResults.length > 0 && (
           <div className="w-full flex flex-col gap-4 mb-6 px-5 py-4 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-gray-200 dark:border-slate-800">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -271,6 +275,7 @@ export default function Home() {
               </div>
             </div>
             
+            {/* Search In Results (กว้างเต็มพื้นที่) */}
             <div className="w-full flex flex-col gap-2">
               {searchData.refineQueries.map((q, index) => (
                 <div key={index} className="flex items-center gap-2">
@@ -339,7 +344,6 @@ export default function Home() {
         {/* Results List */}
         <div className="w-full z-10 space-y-4 pb-20">
           
-          {/* Skeleton Loading */}
           {searchData.isLoading && (
             <div className="space-y-4 mt-4">
                {[...Array(3)].map((_, i) => (
@@ -369,7 +373,8 @@ export default function Home() {
               t={t} 
               searchMode={searchData.searchMode} 
               onSelect={setSelectedThesis} 
-              onAISummarySelect={setSelectedAISummary} // ⭐️ ส่ง prop นี้ให้ปุ่มสีแดง
+              onAISummarySelect={setSelectedAISummary}
+              onChatSelect={setSelectedChatThesis} // ⭐️ ส่ง Prop เปิดแชท
               onTagClick={handleTagClick} 
               onTrackStat={searchData.trackStat} 
               getPreviewUrl={getPreviewUrl} 
@@ -390,7 +395,15 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ⭐️ Modal สรุปย่อโดย AI (เปิดเมื่อกดปุ่มสีแดง) */}
+      {/* ⭐️ หน้าต่าง AI Chat Modal */}
+      {selectedChatThesis && (
+        <ThesisChatModal 
+          thesis={selectedChatThesis} 
+          onClose={() => setSelectedChatThesis(null)} 
+        />
+      )}
+
+      {/* หน้าต่าง AI Summary Modal */}
       {selectedAISummary && (
         <AISummaryModal 
           thesis={selectedAISummary} 
@@ -399,7 +412,7 @@ export default function Home() {
         />
       )}
 
-      {/* Modal รายละเอียดฉบับเต็ม (เปิดเมื่อกดชื่อเรื่อง) */}
+      {/* Modal เล่มเต็ม */}
       {selectedThesis && (
         <ThesisModal 
           thesis={selectedThesis} 

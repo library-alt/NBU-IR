@@ -3,7 +3,8 @@
 
 import { useState, useEffect } from "react";
 import { Search, Edit, Trash2, Loader2, X, Save, Plus, Minus, BarChart3, Filter } from "lucide-react";
-import { Thesis } from "../types/thesis";
+import { Thesis } from "../types/thesis"; // ⭐️ Path ถูกต้อง
+import { extractAndChunkPDF, cleanAndRepairThaiText } from "../utils/pdfChunker";
 
 export default function AdminDashboard() {
   const d = new Date();
@@ -18,16 +19,17 @@ export default function AdminDashboard() {
   const [editingItem, setEditingItem] = useState<Thesis | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
-  // States สำหรับแก้ไขข้อมูล
+  // Form States
   const [showEduList, setShowEduList] = useState(false);
   const [showMajorList, setShowMajorList] = useState(false);
   const [showResourceList, setShowResourceList] = useState(false);
   const [authorList, setAuthorList] = useState<string[]>([]);
   
-  // ⭐️ State สำหรับจัดการ AI Summarize
+  // AI States
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [isIndexingChat, setIsIndexingChat] = useState(false); // ⭐️ State สำหรับทำดัชนีแชท
 
-  // States สำหรับสถิติหน้า Admin
+  // Stats States
   const [stats, setStats] = useState<{resources: any[], majors: any[], total: number}>({ resources: [], majors: [], total: 0 });
   const [statStartMonth, setStatStartMonth] = useState(1);
   const [statEndMonth, setStatEndMonth] = useState(12);
@@ -108,13 +110,12 @@ export default function AdminDashboard() {
     } catch (err) { alert("เกิดข้อผิดพลาด"); } finally { setIsSaving(false); }
   };
 
-  // ⭐️ ฟังก์ชันส่งไฟล์ PDF ให้ AI ช่วยสรุป (ขยายขนาดรองรับเอกสารยาว 100+ หน้า)
+  // ⭐️ ฟังก์ชันส่ง PDF ให้ AI ช่วยสรุป
   const handleSummarize = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
     setIsSummarizing(true);
-  
     try {
       const pdfjsLib = await import('pdfjs-dist');
       pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
@@ -123,20 +124,17 @@ export default function AdminDashboard() {
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       
       let extractedText = '';
-      
-      // ⭐️ ปลดล็อค: ให้อ่านได้สูงสุดถึง 100 หน้า (ครอบคลุมเกือบทั้งเล่ม)
       const maxPages = Math.min(pdf.numPages, 100);
       for (let i = 1; i <= maxPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        extractedText += textContent.items.map((item: any) => item.str).join(' ') + '\n';
+        const rawText = textContent.items.map((item: any) => item.str).join(' ') + '\n';
+        // ⭐️ สั่งซ่อมสระไทยทันที
+        extractedText += cleanAndRepairThaiText(rawText);
       }
 
-      if (!extractedText.trim()) {
-        throw new Error("ไม่สามารถอ่านตัวหนังสือจากไฟล์ PDF ได้ (อาจเป็นไฟล์สแกนรูปภาพ)");
-      }
+      if (!extractedText.trim()) throw new Error("ไม่สามารถอ่านตัวหนังสือจากไฟล์ PDF ได้ (อาจเป็นไฟล์สแกนรูปภาพ)");
 
-      // ⭐️ ปลดล็อค: ส่งข้อความได้มากถึง 100,000 ตัวอักษร (ต้น 50,000 + ท้าย 50,000)
       let textToSend = extractedText;
       if (extractedText.length > 100000) {
         const headText = extractedText.slice(0, 50000);
@@ -168,6 +166,34 @@ export default function AdminDashboard() {
     }
   };
 
+  // ⭐️ ฟังก์ชันเตรียมข้อมูลสำหรับแชท (Index Chunks)
+  const handleIndexPDFForChat = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingItem) return;
+
+    setIsIndexingChat(true);
+    try {
+      const chunks = await extractAndChunkPDF(file);
+      const res = await fetch('/api/admin/index-chunks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thesisId: editingItem.id, chunks })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`✅ เตรียมข้อมูลสำหรับแชทสำเร็จ! หั่นได้ทั้งหมด ${data.count} ท่อนข้อความ`);
+      } else {
+        alert("❌ เกิดข้อผิดพลาด: " + data.error);
+      }
+    } catch (err: any) {
+      alert("❌ ประมวลผลล้มเหลว: " + err.message);
+    } finally {
+      setIsIndexingChat(false);
+      e.target.value = '';
+    }
+  };
+
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto text-slate-800 bg-slate-100 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -177,6 +203,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* สถิติการนำเข้าข้อมูล */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 mb-8 overflow-hidden">
         <div className="bg-blue-50/50 p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h2 className="font-bold text-blue-800 flex items-center gap-2"><BarChart3 className="w-5 h-5"/> สถิติการนำข้อมูลเข้าระบบ</h2>
@@ -230,6 +257,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* ตารางจัดการข้อมูล */}
       <div className="flex justify-between items-end mb-4">
         <h2 className="text-xl font-bold text-slate-700">รายการข้อมูลในระบบ</h2>
         <div className="relative w-full md:w-80">
@@ -303,6 +331,7 @@ export default function AdminDashboard() {
                   <div><label className="block text-sm font-bold mb-1">ชื่อเรื่อง (EN)</label><input type="text" value={editingItem.title_en || ''} onChange={e => setEditingItem({...editingItem, title_en: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500" /></div>
                 </div>
                 
+                {/* ผู้แต่งหลายคน */}
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
                   <label className="block text-sm font-bold mb-3 text-slate-700">ผู้จัดทำ / ผู้แต่ง (สามารถเพิ่มได้หลายคน)</label>
                   {authorList.map((author, idx) => (
@@ -340,31 +369,44 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><label className="block text-sm font-bold mb-1">ลิงก์ Google Drive</label><input type="url" value={editingItem.drive_url || ''} onChange={e => setEditingItem({...editingItem, drive_url: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500" placeholder="https://drive.google.com/..." /></div>
-                  <div><label className="block text-sm font-bold mb-1">ลิงก์ TDC</label><input type="url" value={editingItem.tdc_url || ''} onChange={e => setEditingItem({...editingItem, tdc_url: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500" placeholder="https://tdc.thailis.or.th/..." /></div>
+                  <div><label className="block text-sm font-bold mb-1">ลิงก์ Google Drive</label><input type="url" value={editingItem.drive_url || ''} onChange={e => setEditingItem({...editingItem, drive_url: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500" /></div>
+                  <div><label className="block text-sm font-bold mb-1">ลิงก์ TDC</label><input type="url" value={editingItem.tdc_url || ''} onChange={e => setEditingItem({...editingItem, tdc_url: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500" /></div>
                 </div>
 
-                <div><label className="block text-sm font-bold mb-1">คำสืบค้น (Keywords)</label><input type="text" value={editingItem.keywords || ''} onChange={e => setEditingItem({...editingItem, keywords: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500" placeholder="คำที่ 1, คำที่ 2" /></div>
+                <div><label className="block text-sm font-bold mb-1">คำสืบค้น (Keywords)</label><input type="text" value={editingItem.keywords || ''} onChange={e => setEditingItem({...editingItem, keywords: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500" /></div>
                 <div><label className="block text-sm font-bold mb-1">บทคัดย่อ (TH) / สารสังเขป</label><textarea value={editingItem.abstract_th || ''} onChange={e => setEditingItem({...editingItem, abstract_th: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500 h-24" /></div>
                 <div><label className="block text-sm font-bold mb-1">บทคัดย่อ (EN)</label><textarea value={editingItem.abstract_en || ''} onChange={e => setEditingItem({...editingItem, abstract_en: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500 h-24" /></div>
 
-                {/* ⭐️ ส่วนที่เพิ่มเข้ามาใหม่: กล่องอัปโหลด PDF สำหรับให้ AI ช่วยสรุปเนื้อหา */}
-                <div className="p-5 border-2 border-indigo-100 bg-indigo-50/50 rounded-2xl">
-                  <div className="flex justify-between items-center mb-3">
+                {/* ⭐️ โซนอัปโหลด AI Summary & Chat Index */}
+                <div className="p-5 border-2 border-indigo-100 bg-indigo-50/50 rounded-2xl space-y-3">
+                  <div className="flex flex-wrap justify-between items-center gap-2">
                     <label className="block text-sm font-bold text-indigo-800">✨ AI สรุปเนื้อหา (AI Summary)</label>
-                    <div className="relative">
-                      <input type="file" accept="application/pdf" id="pdf-upload" onChange={handleSummarize} className="hidden" />
-                      <label htmlFor="pdf-upload" className="cursor-pointer bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-100 font-bold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1.5 transition-colors shadow-sm">
-                        {isSummarizing ? <Loader2 className="w-4 h-4 animate-spin" /> : '📄 อัปโหลด PDF ให้ AI สรุป'}
-                      </label>
+                    
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* ปุ่มสรุปเนื้อหา */}
+                      <div className="relative">
+                        <input type="file" accept="application/pdf" id="pdf-upload" onChange={handleSummarize} className="hidden" />
+                        <label htmlFor="pdf-upload" className="cursor-pointer bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-100 font-bold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1.5 transition-colors shadow-sm">
+                          {isSummarizing ? <Loader2 className="w-4 h-4 animate-spin" /> : '📄 อัปโหลด PDF ให้ AI สรุป'}
+                        </label>
+                      </div>
+
+                      {/* ⭐️ ปุ่มทำดัชนีสำหรับแชท */}
+                      <div className="relative">
+                        <input type="file" accept="application/pdf" id="pdf-chat-index" onChange={handleIndexPDFForChat} className="hidden" />
+                        <label htmlFor="pdf-chat-index" className="cursor-pointer bg-purple-600 hover:bg-purple-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1.5 transition-colors shadow-sm">
+                          {isIndexingChat ? <Loader2 className="w-4 h-4 animate-spin" /> : '⚡ เตรียมไฟล์สำหรับ Chat AI'}
+                        </label>
+                      </div>
                     </div>
                   </div>
+
                   <textarea 
                     value={editingItem.ai_summary || ''} 
                     onChange={e => setEditingItem({...editingItem, ai_summary: e.target.value})} 
-                    className="w-full p-4 border border-indigo-200 rounded-xl outline-none focus:border-indigo-500 min-h-[200px] text-sm leading-relaxed" 
+                    className="w-full p-4 border border-indigo-200 rounded-xl outline-none focus:border-indigo-500 min-h-[160px] text-sm leading-relaxed bg-white" 
                     placeholder="เมื่ออัปโหลดไฟล์ PDF ระบบจะสกัดข้อความและให้ AI สรุปโครงสร้างการวิจัยมาไว้ที่นี่อัตโนมัติ..."
-                    disabled={isSummarizing}
+                    disabled={isSummarizing || isIndexingChat}
                   />
                 </div>
               </form>
@@ -372,7 +414,7 @@ export default function AdminDashboard() {
 
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-3xl">
               <button type="button" onClick={() => setEditingItem(null)} className="px-6 py-2.5 font-bold text-slate-600 bg-white border border-slate-300 rounded-xl">ยกเลิก</button>
-              <button type="submit" form="edit-form" disabled={isSaving || isSummarizing} className="px-6 py-2.5 font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl flex items-center gap-2 disabled:opacity-50">
+              <button type="submit" form="edit-form" disabled={isSaving || isSummarizing || isIndexingChat} className="px-6 py-2.5 font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl flex items-center gap-2 disabled:opacity-50">
                 {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />} บันทึกการแก้ไข
               </button>
             </div>

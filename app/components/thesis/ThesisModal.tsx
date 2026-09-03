@@ -2,8 +2,14 @@
 "use client";
 
 import { useState } from "react";
-import { X, Eye, Download, ExternalLink, Quote, Share2, Share, Link as LinkIcon, MessageSquare, Mail, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { 
+  X, Eye, Download, ExternalLink, Quote, Share2, Share, Link as LinkIcon, 
+  MessageSquare, Mail, CheckCircle2, Sparkles, Bot, Globe, FileText 
+} from "lucide-react";
 import { Thesis } from "../../types/thesis";
+import { AISummaryModal } from "./AISummaryModal";
+import { ThesisChatModal } from "./ThesisChatModal";
 
 interface ThesisModalProps {
   thesis: Thesis;
@@ -18,6 +24,8 @@ interface ThesisModalProps {
 export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPreviewUrl, getDirectDownloadUrl }: ThesisModalProps) {
   const [showCitationModal, setShowCitationModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showAISummary, setShowAISummary] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const generateCitation = (item: Thesis, style: string) => {
@@ -63,7 +71,7 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
   };
 
   const triggerShare = async (item: Thesis, platform: string) => {
-    const url = `${window.location.origin}${window.location.pathname}?id=${item.id}`;
+    const url = `${window.location.origin}/thesis/${item.id}`;
     const title = item.title_th || item.title_en || 'วิทยานิพนธ์/สารนิพนธ์';
     const text = `แวะมาอ่านวิทยานิพนธ์/สารนิพนธ์เรื่องนี้ดูสิ: "${title}" โดย ${item.author || '-'} - คลังข้อมูลมหาวิทยาลัยนอร์ทกรุงเทพ`;
 
@@ -92,7 +100,6 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
     onClose();
   };
 
-  // ⭐️ ฟังก์ชันแยกชื่อผู้แต่งแบบแม่นยำ
   const renderAuthors = (authorString: string) => {
     if (!authorString) return "-";
     const authors = authorString.split(/\s*,\s*|\s+และ\s+|\s+and\s+/i).map(a => a.trim()).filter(a => a);
@@ -116,7 +123,6 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
           {thesis.title_en && <h3 className="font-semibold text-slate-600 dark:text-slate-400 mb-6 pr-8 leading-snug text-lg md:text-xl italic">{thesis.title_en}</h3>}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-8 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 text-sm md:text-base">
-            {/* ⭐️ เรียกใช้ฟังก์ชันแยกชื่อผู้แต่ง */}
             <div className="flex flex-wrap gap-1 items-start">
               <b>{t.author}</b> <div className="inline-block">{renderAuthors(thesis.author)}</div>
             </div>
@@ -136,21 +142,6 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
               <h4 className="font-bold text-black dark:text-white mb-3 text-lg border-b border-slate-200 dark:border-slate-700 pb-2">{t.abstractTh}</h4>
               <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line bg-slate-50/30 dark:bg-slate-900/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">{thesis.abstract_th || "-"}</p>
             </div>
-            {/* ⭐️ แสดงกล่อง AI Summary ถ้ามีข้อมูล */}
-          {thesis.ai_summary && (
-            <div className="mb-8 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-purple-500 rounded-l-2xl"></div>
-              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 p-6 md:p-8 rounded-2xl border border-indigo-100 dark:border-indigo-900/50">
-                <h4 className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 mb-4 flex items-center gap-2 text-lg">
-                  ✨ สรุปย่อโดย AI (AI Executive Summary)
-                </h4>
-                <div className="text-slate-700 dark:text-slate-300 leading-loose whitespace-pre-line text-[15px]">
-                  {thesis.ai_summary}
-                </div>
-              </div>
-            </div>
-          )}
-
             {thesis.abstract_en && (
               <div>
                 <h4 className="font-bold text-black dark:text-white mb-3 text-lg border-b border-slate-200 dark:border-slate-700 pb-2">{t.abstractEn}</h4>
@@ -173,69 +164,123 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
           </div>
         </div>
         
-        {/* Actions Footer */}
-        <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-3 relative justify-center sm:justify-between">
-          <div className="flex justify-center items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold w-full sm:w-auto px-4 py-2.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-             <span title="ยอดเข้าชม" className="flex items-center gap-1.5"><Eye className="w-5 h-5 text-blue-500" />{thesis.view_count || 0}</span>
-             <span className="w-px h-5 bg-slate-300 dark:bg-slate-600"></span>
-             <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5"><Download className="w-5 h-5 text-emerald-500" />{thesis.download_count || 0}</span>
+        {/* ⭐️ Actions Footer (ยกเครื่องใหม่ ดีไซน์พรีเมียม สวยสะดุดตา) */}
+        <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-3 relative justify-center sm:justify-between">
+          
+          {/* ตัวเลขสถิติแบบ Pill สีสันสวยงาม */}
+          <div className="flex items-center gap-4 text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-extrabold px-4 py-2.5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+             <span title="ยอดเข้าชม" className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400"><Eye className="w-4 h-4" /> {thesis.view_count || 0}</span>
+             <span className="w-px h-4 bg-slate-200 dark:bg-slate-700"></span>
+             <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400"><Download className="w-4 h-4" /> {thesis.download_count || 0}</span>
           </div>
 
-          <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto justify-center">
-            {/* Citation Button */}
-            <div className="relative flex-1 sm:flex-none">
-              <button onClick={() => setShowCitationModal(!showCitationModal)} className="w-full sm:w-auto justify-center px-4 py-2.5 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 border bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600">
-                <Quote className="w-5 h-5" /> <span className="hidden sm:inline">{t.cite}</span>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-center">
+            
+            {/* 🤖 ปุ่มแชท AI (โชว์เฉพาะเล่มที่มีข้อมูล) */}
+            {Boolean(thesis.has_chat) && (
+              <button 
+                onClick={() => setShowChat(true)} 
+                className="flex items-center gap-1.5 font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all"
+                title="แชทคุยสอบถามเนื้อหาในเล่มกับ AI"
+              >
+                <Bot className="w-4 h-4 text-amber-200" /> แชท AI
               </button>
+            )}
+
+            {/* ✨ ปุ่ม AI สรุป (โชว์เฉพาะเล่มที่มีบทสรุป) */}
+            {Boolean(thesis.ai_summary) && (
+              <button 
+                onClick={() => setShowAISummary(true)} 
+                className="flex items-center gap-1.5 font-bold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all"
+                title="อ่านบทสรุปย่อ 4 หัวข้อโดย AI"
+              >
+                <Sparkles className="w-4 h-4 text-amber-200 animate-pulse" /> AI สรุป
+              </button>
+            )}
+
+            {/* 🌐 ปุ่มหน้าเฉพาะเล่ม (สไตล์ Minimal Soft Blue) */}
+            <Link 
+              href={`/thesis/${thesis.id}`} 
+              target="_blank" 
+              className="flex items-center gap-1.5 font-bold text-blue-700 dark:text-blue-300 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-4 py-2.5 rounded-2xl border border-blue-200 dark:border-blue-800 text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition-all"
+            >
+              <Globe className="w-4 h-4 text-blue-600" /> หน้าเฉพาะเล่ม
+            </Link>
+
+            {/* 📖 ปุ่ม Citation */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowCitationModal(!showCitationModal)} 
+                className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition-all"
+              >
+                <Quote className="w-4 h-4 text-amber-500" /> อ้างอิง
+              </button>
+
               {showCitationModal && (
-                <div className="absolute bottom-full left-0 sm:left-auto sm:right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-left sm:origin-bottom-right">
+                <div className="absolute bottom-full right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-right">
                   <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">เลือกรูปแบบการอ้างอิง</p>
                   {['NBU', 'APA7', 'MLA9', 'Chicago', 'Vancouver', 'Harvard'].map((style) => (
-                    <button key={style} onClick={() => copyCitation(thesis, style)} className={`w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center justify-between ${copiedId === `cite-${style}` ? 'bg-green-50 text-green-600 dark:bg-green-900/30' : 'hover:bg-blue-50 text-slate-700 dark:text-slate-300 dark:hover:bg-blue-900/30 hover:text-blue-600'}`}>
-                      {style} {copiedId === `cite-${style}` && <CheckCircle2 className="w-4 h-4" />}
+                    <button key={style} onClick={() => copyCitation(thesis, style)} className={`w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors flex items-center justify-between ${copiedId === `cite-${style}` ? 'bg-green-50 text-green-600 dark:bg-green-900/30' : 'hover:bg-blue-50 text-slate-700 dark:text-slate-300 dark:hover:bg-blue-900/30 hover:text-blue-600'}`}>
+                      {style} {copiedId === `cite-${style}` && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Share Button */}
-            <div className="relative flex-1 sm:flex-none">
-              <button onClick={() => setShowShareModal(!showShareModal)} className={`w-full sm:w-auto justify-center px-4 py-2.5 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 border ${copiedId?.startsWith('share') ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600'}`}>
-                {copiedId?.startsWith('share') ? <CheckCircle2 className="w-5 h-5" /> : <Share2 className="w-5 h-5" />} 
-                <span className="hidden sm:inline">{copiedId?.startsWith('share') ? t.copied : t.share}</span>
+            {/* 🔗 ปุ่มแชร์ */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowShareModal(!showShareModal)} 
+                className={`flex items-center gap-1.5 font-bold px-4 py-2.5 rounded-2xl border text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition-all ${copiedId?.startsWith('share') ? 'bg-emerald-50 text-emerald-600 border-emerald-300 dark:bg-emerald-950/40' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700'}`}
+              >
+                {copiedId?.startsWith('share') ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4 text-purple-500" />} 
+                <span>{copiedId?.startsWith('share') ? 'คัดลอกแล้ว' : 'แชร์'}</span>
               </button>
+
               {showShareModal && (
-                <div className="absolute bottom-full left-0 sm:left-auto sm:right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-left sm:origin-bottom-right">
+                <div className="absolute bottom-full right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-right">
                   <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">แชร์ไปที่</p>
-                  <button onClick={() => triggerShare(thesis, 'native')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg flex items-center gap-3 hover:bg-blue-50 text-slate-700 dark:text-slate-300 hover:text-blue-600"><Share className="w-4 h-4" /> แชร์ผ่านมือถือ</button>
-                  <button onClick={() => triggerShare(thesis, 'copy')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg flex items-center gap-3 hover:bg-blue-50 text-slate-700 dark:text-slate-300 hover:text-blue-600"><LinkIcon className="w-4 h-4" /> คัดลอกลิงก์</button>
-                  <button onClick={() => triggerShare(thesis, 'line')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg flex items-center gap-3 hover:bg-[#00c300]/10 text-slate-700 dark:text-slate-300 hover:text-[#00c300]"><MessageSquare className="w-4 h-4" /> LINE</button>
-                  <button onClick={() => triggerShare(thesis, 'facebook')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg flex items-center gap-3 hover:bg-[#1877F2]/10 text-slate-700 dark:text-slate-300 hover:text-[#1877F2]"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg> Facebook</button>
-                  <button onClick={() => triggerShare(thesis, 'email')} className="w-full text-left px-3 py-2.5 text-sm font-bold rounded-lg flex items-center gap-3 hover:bg-red-50 text-slate-700 dark:text-slate-300 hover:text-red-600"><Mail className="w-4 h-4" /> Gmail (อีเมล)</button>
+                  <button onClick={() => triggerShare(thesis, 'native')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-blue-50 text-slate-700 dark:text-slate-300 hover:text-blue-600"><Share className="w-3.5 h-3.5" /> แชร์ผ่านมือถือ</button>
+                  <button onClick={() => triggerShare(thesis, 'copy')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-blue-50 text-slate-700 dark:text-slate-300 hover:text-blue-600"><LinkIcon className="w-3.5 h-3.5" /> คัดลอกลิงก์</button>
+                  <button onClick={() => triggerShare(thesis, 'line')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-[#00c300]/10 text-slate-700 dark:text-slate-300 hover:text-[#00c300]"><MessageSquare className="w-3.5 h-3.5" /> LINE</button>
+                  <button onClick={() => triggerShare(thesis, 'facebook')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-[#1877F2]/10 text-slate-700 dark:text-slate-300 hover:text-[#1877F2]"><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg> Facebook</button>
+                  <button onClick={() => triggerShare(thesis, 'email')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-red-50 text-slate-700 dark:text-slate-300 hover:text-red-600"><Mail className="w-3.5 h-3.5" /> Gmail (อีเมล)</button>
                 </div>
               )}
             </div>
 
-            {/* Links */}
+            {/* 📥 ปุ่มดาวน์โหลด (สีเขียวมรกต CTA โดดเด่น) */}
             {thesis.drive_url && (
-              <a href={getPreviewUrl(thesis.drive_url)} target="_blank" rel="noreferrer" onClick={() => onTrackStat(thesis.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 px-4 py-2.5 rounded-xl text-sm shadow-sm">
-                <ExternalLink className="w-5 h-5" /> <span className="hidden sm:inline">{t.viewOnline}</span><span className="sm:hidden">{t.viewOnlineMobile}</span>
+              <a 
+                href={getDirectDownloadUrl(thesis.drive_url)} 
+                onClick={() => onTrackStat(thesis.id, 'download')} 
+                className="flex items-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all"
+              >
+                <Download className="w-4 h-4" /> ดาวน์โหลด
               </a>
             )}
-            {thesis.drive_url && (
-              <a href={getDirectDownloadUrl(thesis.drive_url)} onClick={() => onTrackStat(thesis.id, 'download')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 rounded-xl text-sm shadow-sm">
-                <Download className="w-5 h-5" /> <span className="hidden sm:inline">{t.download}</span>
-              </a>
-            )}
+
+            {/* ↗ ปุ่ม TDC */}
             {thesis.tdc_url && (
-              <a href={thesis.tdc_url} target="_blank" rel="noreferrer" onClick={() => onTrackStat(thesis.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 rounded-xl text-sm shadow-sm">
-                <ExternalLink className="w-5 h-5" /> TDC
+              <a 
+                href={thesis.tdc_url} 
+                target="_blank" 
+                rel="noreferrer" 
+                onClick={() => onTrackStat(thesis.id, 'view')} 
+                className="flex items-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all"
+              >
+                <ExternalLink className="w-4 h-4" /> TDC
               </a>
             )}
+
           </div>
         </div>
       </div>
+
+      {/* Modals พิเศษ */}
+      {showAISummary && <AISummaryModal thesis={thesis} onClose={() => setShowAISummary(false)} onOpenFullDetails={() => {}} />}
+      {showChat && <ThesisChatModal thesis={thesis} onClose={() => setShowChat(false)} />}
     </div>
   );
 }

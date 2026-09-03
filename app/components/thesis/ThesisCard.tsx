@@ -1,13 +1,14 @@
 // components/thesis/ThesisCard.tsx
-import { User, BookOpen, GraduationCap, Calendar, Eye, Download, ExternalLink, FileText, Sparkles } from "lucide-react";
+import { User, BookOpen, GraduationCap, Calendar, Eye, Download, ExternalLink, FileText, Sparkles, Bot } from "lucide-react";
 import { Thesis } from "../../types/thesis";
 
 interface ThesisCardProps {
-  item: Thesis;
+  item: Thesis; 
   t: any; 
   searchMode: string;
   onSelect: (item: Thesis) => void;
-  onAISummarySelect?: (item: Thesis) => void; // ⭐️ ตั้งเป็น optional เผื่อไม่ได้ส่งมา
+  onAISummarySelect?: (item: Thesis) => void;
+  onChatSelect?: (item: Thesis) => void;
   onTagClick: (field: string, value: string) => void;
   onTrackStat: (id: string | number, type: 'view' | 'download') => void;
   getPreviewUrl: (url: string) => string;
@@ -15,7 +16,7 @@ interface ThesisCardProps {
 }
 
 export function ThesisCard({ 
-  item, t, searchMode, onSelect, onAISummarySelect, onTagClick, onTrackStat, getPreviewUrl, getDirectDownloadUrl 
+  item, t, searchMode, onSelect, onAISummarySelect, onChatSelect, onTagClick, onTrackStat, getPreviewUrl, getDirectDownloadUrl 
 }: ThesisCardProps) {
   
   const renderAuthors = (authorString: string) => {
@@ -87,22 +88,33 @@ export function ThesisCard({
         </div>
         
         <div className="flex flex-wrap gap-2.5 justify-start sm:justify-end items-center w-full md:w-auto mt-3 md:mt-0">
+          
+          {/* ตัวนับเข้าชม/ดาวน์โหลด */}
           <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold mr-1 bg-slate-50 dark:bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
             <span title="ยอดเข้าชม" className="flex items-center gap-1.5"><Eye className="w-4 h-4 text-blue-500" />{item.view_count || 0}</span>
             <span className="w-px h-4 bg-slate-300 dark:bg-slate-600"></span>
             <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5"><Download className="w-4 h-4 text-emerald-500" />{item.download_count || 0}</span>
           </div>
 
-          {/* ⭐️ ดักจับความปลอดภัย: ถ้ามีฟังก์ชัน onAISummarySelect ให้เรียกใช้ ถ้าไม่มีให้ใช้ onSelect แทน */}
-          {item.ai_summary && (
+          {/* ⭐️ ปุ่ม แชท AI: มีเพียงปุ่มเดียว และโชว์เฉพาะเล่มที่มีข้อมูลแชทเท่านั้น (has_chat === true) */}
+          {Boolean(item.has_chat) && (
+            <button
+              onClick={() => onChatSelect ? onChatSelect(item) : onSelect(item)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-3.5 py-2 rounded-xl transition-all text-sm shadow-md hover:scale-[1.02] active:scale-95 cursor-pointer"
+              title="พูดคุยสอบถามเนื้อหาในเล่มนี้กับ AI"
+            >
+              <Bot className="w-4 h-4 text-amber-200" />
+              <span>แชท AI</span>
+            </button>
+          )}
+
+          {/* ⭐️ ปุ่ม AI สรุป: โชว์เฉพาะเล่มที่มีบทสรุป */}
+          {Boolean(item.ai_summary) && (
             <button
               onClick={() => { 
                 onTrackStat(item.id, 'view'); 
-                if (typeof onAISummarySelect === 'function') {
-                  onAISummarySelect(item);
-                } else {
-                  onSelect(item);
-                }
+                if (typeof onAISummarySelect === 'function') onAISummarySelect(item);
+                else onSelect(item);
               }}
               className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 px-3.5 py-2 rounded-xl transition-all text-sm shadow-md hover:shadow-red-500/25 hover:scale-[1.02] active:scale-95 cursor-pointer"
               title="อ่านบทสรุปย่อโดย AI"
@@ -112,11 +124,6 @@ export function ThesisCard({
             </button>
           )}
 
-          {item.drive_url && (
-            <a href={getPreviewUrl(item.drive_url)} target="_blank" rel="noreferrer" onClick={() => onTrackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 px-3.5 py-2 rounded-xl transition-colors text-sm shadow-sm">
-              <ExternalLink className="w-4 h-4" /> <span className="hidden sm:inline">{t.viewOnline}</span><span className="sm:hidden">{t.viewOnlineMobile}</span>
-            </a>
-          )}
           {item.drive_url && (
             <a href={getDirectDownloadUrl(item.drive_url)} onClick={() => onTrackStat(item.id, 'download')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
               <Download className="w-4 h-4" /> <span className="hidden sm:inline">{t.download}</span>
