@@ -4,7 +4,11 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useTheme } from "next-themes";
-import { Search, ChevronDown, Moon, Sun, Plus, Minus, Loader2, Filter, X, ArrowUpDown, Type, Menu, BarChart2, Home as HomeIcon, Layers, Tag, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { 
+  Search, ChevronDown, Moon, Sun, Plus, Minus, Loader2, Filter, X, 
+  ArrowUpDown, Type, Menu, BarChart2, Home as HomeIcon, Layers, Tag, 
+  ChevronLeft, ChevronRight, RotateCcw, FlaskConical, Sparkles 
+} from "lucide-react";
 
 // Types & Constants & Hooks
 import { Lang, Thesis } from "./types/thesis";
@@ -16,7 +20,7 @@ import { ThesisCard } from "./components/thesis/ThesisCard";
 import { ThesisModal } from "./components/thesis/ThesisModal";
 import { StatsModal } from "./components/thesis/StatsModal";
 import { AISummaryModal } from "./components/thesis/AISummaryModal";
-import { ThesisChatModal } from "./components/thesis/ThesisChatModal"; // ⭐️ Import หน้าต่างแชท
+import { ThesisChatModal } from "./components/thesis/ThesisChatModal";
 
 export default function Home() {
   const [lang, setLang] = useState<Lang>('th');
@@ -35,7 +39,7 @@ export default function Home() {
   // Modal States
   const [selectedThesis, setSelectedThesis] = useState<Thesis | null>(null);
   const [selectedAISummary, setSelectedAISummary] = useState<Thesis | null>(null);
-  const [selectedChatThesis, setSelectedChatThesis] = useState<Thesis | null>(null); // ⭐️ State สำหรับแชท
+  const [selectedChatThesis, setSelectedChatThesis] = useState<Thesis | null>(null);
   
   const [showMajorsList, setShowMajorsList] = useState(false);
 
@@ -87,17 +91,35 @@ export default function Home() {
   return (
     <main className={`min-h-screen flex flex-col relative overflow-x-hidden transition-colors duration-500 ${isDark ? 'bg-[#080d1a]' : 'bg-slate-50'} ${searchData.hasSearched ? 'justify-start pt-10' : 'justify-center'}`}>
       
-      {/* ซูมฟอนต์ทั้งหน้าจอแบบสัดส่วนสมบูรณ์ */}
-      <style dangerouslySetInnerHTML={{ __html: `html { font-size: ${fontSizeIndex === 0 ? '14px' : fontSizeIndex === 1 ? '16px' : '18px'} !important; transition: font-size 0.3s ease; }` }} />
+      {/* ⭐️ สไตล์ 3D ของปุ่มทั้ง 2 และการปรับฟอนต์ (ยิงตรงผ่าน CSS บราวเซอร์ ไม่พึ่งพาคลาส Tailwind) */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        html { font-size: ${fontSizeIndex === 0 ? '14px' : fontSizeIndex === 1 ? '16px' : '18px'} !important; transition: font-size 0.3s ease; }
+        
+        .btn-3d-blue {
+          box-shadow: 0 6px 0 #1e3a8a !important;
+          transition: all 0.15s ease !important;
+        }
+        .btn-3d-blue:active {
+          box-shadow: 0 0 0 #1e3a8a !important;
+          transform: translateY(6px) !important;
+        }
 
-      {/* Top Navbar */}
+        .btn-3d-green {
+          box-shadow: 0 6px 0 #064e3b !important;
+          transition: all 0.15s ease !important;
+        }
+        .btn-3d-green:active {
+          box-shadow: 0 0 0 #064e3b !important;
+          transform: translateY(6px) !important;
+        }
+      ` }} />
+
       <div className="absolute top-6 left-6 z-50">
         <button onClick={() => setIsSidebarOpen(true)} className="flex items-center justify-center w-10 h-10 rounded-full border shadow-md transition-all duration-300 bg-white hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
           <Menu className="w-5 h-5" />
         </button>
       </div>
       
-      {/* Sidebar */}
       <div className={`fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsSidebarOpen(false)}></div>
       <div className={`fixed top-0 left-0 h-full w-80 bg-white dark:bg-slate-900 shadow-2xl z-[200] transform transition-transform duration-500 border-r border-slate-200 dark:border-slate-800 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 flex flex-col h-full">
@@ -129,7 +151,6 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Main Content Area */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 flex flex-col items-center z-10 py-6">
         
         <div className="w-full flex justify-center relative z-10 mb-8 mt-4">
@@ -172,7 +193,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Advanced Search */}
               <div className={`overflow-hidden transition-all duration-300 ease-in-out border-t border-gray-100 dark:border-slate-800 ${searchData.showAdvanced ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0 border-transparent"}`}>
                 <div className="p-5 space-y-4 bg-gray-50/50 dark:bg-slate-900/50 rounded-b-3xl">
                   {searchData.extraQueries.map((q, index) => (
@@ -202,12 +222,31 @@ export default function Home() {
             </form>
           </div>
 
-          {/* Majors Suggestion */}
+          {/* ⭐️ รวม 2 ปุ่มสไตล์ 3D: แสดงหลักสูตร (น้ำเงิน 3D) และ ข้อมูลเข้าใหม่ (เขียว 3D) */}
           {searchData.dynamicMajors.length > 0 && (
             <div className="w-full flex flex-col items-center relative z-10 mb-8">
-              <button onClick={() => setShowMajorsList(!showMajorsList)} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-8 rounded-2xl flex items-center gap-3 shadow-[0_6px_0_#1e3a8a] active:shadow-[0_0px_0_#1e3a8a] active:translate-y-[6px] transition-all">
-                <Layers className="w-5 h-5" /> {showMajorsList ? t.hideMajors : t.showMajors}
-              </button>
+              
+              <div className="flex flex-wrap justify-center gap-4">
+                {/* ปุ่มแสดงหลักสูตร (สีน้ำเงิน 3D แน่นอน) */}
+                <button 
+                  onClick={() => setShowMajorsList(!showMajorsList)} 
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-8 rounded-2xl flex items-center gap-3 btn-3d-blue cursor-pointer"
+                >
+                  <Layers className="w-5 h-5" /> {showMajorsList ? t.hideMajors : t.showMajors}
+                </button>
+                
+                {/* ปุ่มข้อมูลเข้าใหม่ (สีเขียว 3D แน่นอน 100%) */}
+                <button 
+                  onClick={() => {
+                    searchData.fetchRecentItems();
+                    setTimeout(() => document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+                  }} 
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-8 rounded-2xl flex items-center gap-3 btn-3d-green cursor-pointer"
+                >
+                  <Sparkles className="w-5 h-5 text-amber-300" /> {t.recentItems || "ข้อมูลเข้าใหม่ (20 เล่มล่าสุด)"}
+                </button>
+              </div>
+
               <div className={`w-full overflow-hidden transition-all duration-500 ${showMajorsList ? 'max-h-[2000px] opacity-100 mt-8' : 'max-h-0 opacity-0 mt-0'}`}>
                 <div className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4 flex items-center justify-center gap-1.5"><Tag className="w-4 h-4" /> {t.quickSelectTitle}</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -269,13 +308,12 @@ export default function Home() {
                     <option value="newest" className="dark:bg-slate-800">{t.sortNewest}</option><option value="oldest" className="dark:bg-slate-800">{t.sortOldest}</option><option value="alphabeticalAsc" className="dark:bg-slate-800">{t.sortAlphaAsc}</option><option value="alphabeticalDesc" className="dark:bg-slate-800">{t.sortAlphaDesc}</option>
                   </select>
                 </div>
-                <button onClick={() => searchData.setShowFilters(!searchData.showFilters)} className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-full border transition-all ${searchData.showFilters ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}>
+                <button onClick={() => searchData.setShowFilters(!searchData.showFilters)} className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-full border transition-all cursor-pointer ${searchData.showFilters ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}>
                   <Filter className="w-4 h-4" /> {t.filterBtn}
                 </button>
               </div>
             </div>
             
-            {/* Search In Results (กว้างเต็มพื้นที่) */}
             <div className="w-full flex flex-col gap-2">
               {searchData.refineQueries.map((q, index) => (
                 <div key={index} className="flex items-center gap-2">
@@ -284,8 +322,8 @@ export default function Home() {
                     <select value={q.field} onChange={e => {const n=[...searchData.refineQueries]; n[index].field=e.target.value; searchData.setRefineQueries(n);}} className="bg-transparent px-4 py-2.5 text-sm outline-none font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer">{SEARCH_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}</select>
                   </div>
                   <input type="text" value={q.text} onChange={e => {const n=[...searchData.refineQueries]; n[index].text=e.target.value; searchData.setRefineQueries(n);}} placeholder={index===0 ? t.searchInResults : '...'} className="flex-1 bg-slate-50 dark:bg-slate-950 border-y border-r border-gray-200 dark:border-slate-700 rounded-r-2xl px-4 py-2.5 text-base outline-none text-slate-900 dark:text-white placeholder-slate-400" />
-                  {index === 0 ? <button onClick={() => searchData.setRefineQueries([...searchData.refineQueries, {text: '', field: 'all', operator: 'AND'}])} className="p-3 text-blue-600 bg-blue-50 dark:bg-blue-900/30 rounded-full hover:bg-blue-100 transition-colors shadow-sm"><Plus className="w-4 h-4" /></button> 
-                               : <button onClick={() => {const n=[...searchData.refineQueries]; n.splice(index,1); searchData.setRefineQueries(n);}} className="p-3 text-red-600 bg-red-50 dark:bg-red-900/20 rounded-full hover:bg-red-100 transition-colors shadow-sm"><Minus className="w-4 h-4" /></button>}
+                  {index === 0 ? <button onClick={() => searchData.setRefineQueries([...searchData.refineQueries, {text: '', field: 'all', operator: 'AND'}])} className="p-3 text-blue-600 bg-blue-50 dark:bg-blue-900/30 rounded-full hover:bg-blue-100 transition-colors shadow-sm cursor-pointer"><Plus className="w-4 h-4" /></button> 
+                               : <button onClick={() => {const n=[...searchData.refineQueries]; n.splice(index,1); searchData.setRefineQueries(n);}} className="p-3 text-red-600 bg-red-50 dark:bg-red-900/20 rounded-full hover:bg-red-100 transition-colors shadow-sm cursor-pointer"><Minus className="w-4 h-4" /></button>}
                 </div>
               ))}
             </div>
@@ -293,51 +331,134 @@ export default function Home() {
         )}
 
         {/* Filter Panel */}
-        <div className={`w-full overflow-hidden transition-all duration-300 ${searchData.showFilters && searchData.allResults.length > 0 ? "max-h-[1200px] opacity-100 mb-6" : "max-h-0 opacity-0 mb-0"}`}>
-          <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-xl">
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {[{title: t.filterResource, data: searchData.availableFilters.resources, state: searchData.selectedResources, set: searchData.setSelectedResources},
-                  {title: t.filterMajor, data: searchData.availableFilters.majors, state: searchData.selectedMajors, set: searchData.setSelectedMajors},
-                  {title: t.filterAdvisor, data: searchData.availableFilters.advisors, state: searchData.selectedAdvisors, set: searchData.setSelectedAdvisors}
-                 ].map(group => (
-                  <div key={group.title}>
-                    <span className="block text-sm font-bold mb-3 border-b pb-2 dark:border-slate-700 dark:text-white">{group.title}</span>
-                    <div className="space-y-2 max-h-56 overflow-y-auto pr-2 custom-scrollbar">
-                      {group.data.map(f => (
-                        <label key={f.val} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
-                          <input type="checkbox" checked={group.state.includes(f.val)} onChange={() => group.set(group.state.includes(f.val) ? group.state.filter((i: string) => i!==f.val) : [...group.state, f.val])} className="w-4 h-4 mt-0.5 rounded text-blue-600" />
-                          <span>{f.val} ({f.count})</span>
-                        </label>
-                      ))}
+        <div className={`w-full overflow-hidden transition-all duration-300 ${searchData.showFilters && searchData.allResults.length > 0 ? "max-h-[1600px] opacity-100 mb-6" : "max-h-0 opacity-0 mb-0"}`}>
+          <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-xl space-y-6">
+             
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <span className="block text-sm font-bold mb-3 border-b pb-2 dark:border-slate-700 dark:text-white">{t.filterResource}</span>
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-2 custom-scrollbar">
+                    {searchData.availableFilters.resources.map(f => (
+                      <label key={f.val} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600">
+                        <input type="checkbox" checked={searchData.selectedResources.includes(f.val)} onChange={() => searchData.setSelectedResources(searchData.selectedResources.includes(f.val) ? searchData.selectedResources.filter((i: string) => i!==f.val) : [...searchData.selectedResources, f.val])} className="w-4 h-4 mt-0.5 rounded text-blue-600" />
+                        <span>{f.val} ({f.count})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="block text-sm font-bold mb-3 border-b pb-2 dark:border-slate-700 dark:text-white">{t.filterMajor}</span>
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-2 custom-scrollbar">
+                    {searchData.availableFilters.majors.map(f => (
+                      <label key={f.val} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600">
+                        <input type="checkbox" checked={searchData.selectedMajors.includes(f.val)} onChange={() => searchData.setSelectedMajors(searchData.selectedMajors.includes(f.val) ? searchData.selectedMajors.filter((i: string) => i!==f.val) : [...searchData.selectedMajors, f.val])} className="w-4 h-4 mt-0.5 rounded text-blue-600" />
+                        <span>{f.val} ({f.count})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="block text-sm font-bold mb-3 border-b pb-2 dark:border-slate-700 dark:text-white">{t.filterAdvisor}</span>
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-2 custom-scrollbar">
+                    {searchData.availableFilters.advisors.map(f => (
+                      <label key={f.val} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600">
+                        <input type="checkbox" checked={searchData.selectedAdvisors.includes(f.val)} onChange={() => searchData.setSelectedAdvisors(searchData.selectedAdvisors.includes(f.val) ? searchData.selectedAdvisors.filter((i: string) => i!==f.val) : [...searchData.selectedAdvisors, f.val])} className="w-4 h-4 mt-0.5 rounded text-blue-600" />
+                        <span>{f.val} ({f.count})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="block text-sm font-bold mb-3 border-b pb-2 dark:border-slate-700 dark:text-white">{t.filterYear}</span>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-2">
+                      <button onClick={() => searchData.applyQuickYear(5)} className="flex-1 px-2 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-lg border border-blue-200 dark:border-blue-800">{t.quick5Years}</button>
+                      <button onClick={() => searchData.applyQuickYear(10)} className="flex-1 px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-lg border border-indigo-200 dark:border-indigo-800">{t.quick10Years}</button>
+                    </div>
+                    
+                    <div className="flex flex-col gap-1.5 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                      <div className="flex justify-between items-center text-xs font-semibold">
+                        <input type="number" placeholder={String(searchData.globalMinYear)} value={searchData.yearMin} onChange={e => { searchData.setYearMin(e.target.value===""?"":Number(e.target.value)); searchData.setSelectedYears([]); }} className="w-16 px-2 py-1 rounded-lg border text-center dark:bg-slate-900 text-xs" /> 
+                        <span>-</span> 
+                        <input type="number" placeholder={String(searchData.globalMaxYear)} value={searchData.yearMax} onChange={e => { searchData.setYearMax(e.target.value===""?"":Number(e.target.value)); searchData.setSelectedYears([]); }} className="w-16 px-2 py-1 rounded-lg border text-center dark:bg-slate-900 text-xs" />
+                      </div>
+                      <button onClick={() => { searchData.setYearMin(""); searchData.setYearMax(""); searchData.setSelectedYears([]); }} className="text-[10px] font-bold text-red-500 text-right hover:underline">ล้างช่วงปี</button>
+                    </div>
+
+                    <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50/50 dark:bg-slate-800/40">
+                      <span className="text-[11px] font-bold text-slate-400 block mb-1.5">ติ๊กเลือกรายปี:</span>
+                      <div className="space-y-1 max-h-28 overflow-y-auto pr-1 custom-scrollbar">
+                        {searchData.availableFilters.years.map(y => (
+                          <label key={y.val} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer hover:text-blue-600">
+                            <input type="checkbox" checked={searchData.selectedYears.includes(y.val)} onChange={() => { searchData.setYearMin(""); searchData.setYearMax(""); searchData.setSelectedYears(searchData.selectedYears.includes(y.val) ? searchData.selectedYears.filter((i: string) => i !== y.val) : [...searchData.selectedYears, y.val]); }} className="w-3.5 h-3.5 rounded text-blue-600" />
+                            <span>พ.ศ. {y.val} ({y.count})</span>
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                 ))}
-                 
-                 {/* Year Filter */}
-                 <div>
-                    <span className="block text-sm font-bold mb-3 border-b pb-2 dark:border-slate-700 dark:text-white">{t.filterYear}</span>
-                    <div className="flex flex-col gap-3">
-                      <div className="flex gap-2">
-                        <button onClick={() => searchData.applyQuickYear(5)} className="flex-1 px-2 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-lg transition-colors border border-blue-200 dark:border-blue-800">
-                          {t.quick5Years}
-                        </button>
-                        <button onClick={() => searchData.applyQuickYear(10)} className="flex-1 px-2 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-lg transition-colors border border-indigo-200 dark:border-indigo-800">
-                          {t.quick10Years}
-                        </button>
-                      </div>
-                      
-                      <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 mt-2">
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400">ระบุช่วงปี (มีข้อมูลตั้งแต่ {searchData.globalMinYear} - {searchData.globalMaxYear})</label>
-                        <div className="flex justify-between items-center text-sm font-semibold mt-1">
-                          <input type="number" placeholder={String(searchData.globalMinYear)} value={searchData.yearMin} onChange={e => searchData.setYearMin(e.target.value===""?"":Number(e.target.value))} className="w-24 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 outline-none focus:border-blue-500 text-center dark:bg-slate-900 dark:text-white" /> 
-                          <span className="text-slate-400">-</span> 
-                          <input type="number" placeholder={String(searchData.globalMaxYear)} value={searchData.yearMax} onChange={e => searchData.setYearMax(e.target.value===""?"":Number(e.target.value))} className="w-24 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 outline-none focus:border-blue-500 text-center dark:bg-slate-900 dark:text-white" />
-                        </div>
-                        <button onClick={() => {searchData.setYearMin(""); searchData.setYearMax("");}} className="text-xs font-bold text-red-500 text-right w-full mt-2 hover:text-red-600">ล้างค่าปี</button>
-                      </div>
-                    </div>
-                 </div>
+                </div>
              </div>
+
+             <div className="pt-2">
+                <h4 className="text-sm font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-1.5">
+                  <FlaskConical className="w-5 h-5" /> ตัวกรองระเบียบวิธีวิจัย (Research Methodology Filters)
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div>
+                    <span className="block text-sm font-bold mb-3 text-slate-700 dark:text-slate-300 border-b pb-2 dark:border-slate-700">ประเภทการวิจัย</span>
+                    <div className="space-y-2.5 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                      {searchData.availableFilters.researchTypes.length > 0 ? searchData.availableFilters.researchTypes.map(f => (
+                        <label key={f.val} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300 cursor-pointer hover:text-indigo-600">
+                          <input type="checkbox" checked={searchData.selectedResearchTypes.includes(f.val)} onChange={() => searchData.setSelectedResearchTypes(searchData.selectedResearchTypes.includes(f.val) ? searchData.selectedResearchTypes.filter((i: string) => i!==f.val) : [...searchData.selectedResearchTypes, f.val])} className="w-4 h-4 mt-0.5 rounded text-indigo-600 focus:ring-indigo-500" />
+                          <span className="leading-snug">{f.val} ({f.count})</span>
+                        </label>
+                      )) : <p className="text-sm text-slate-400 italic">ไม่มีข้อมูลในผลลัพธ์นี้</p>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="block text-sm font-bold mb-3 text-slate-700 dark:text-slate-300 border-b pb-2 dark:border-slate-700">ขนาดกลุ่มตัวอย่าง (ช่วงหลักร้อย)</span>
+                    <div className="space-y-2.5 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                      {searchData.availableFilters.sampleRanges.length > 0 ? searchData.availableFilters.sampleRanges.map(f => (
+                        <label key={f.val} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300 cursor-pointer hover:text-indigo-600">
+                          <input type="checkbox" checked={searchData.selectedSampleRanges.includes(f.val)} onChange={() => searchData.setSelectedSampleRanges(searchData.selectedSampleRanges.includes(f.val) ? searchData.selectedSampleRanges.filter((i: string) => i!==f.val) : [...searchData.selectedSampleRanges, f.val])} className="w-4 h-4 mt-0.5 rounded text-indigo-600 focus:ring-indigo-500" />
+                          <span className="font-semibold leading-snug">{f.val} ({f.count})</span>
+                        </label>
+                      )) : <p className="text-sm text-slate-400 italic">ไม่มีข้อมูลในผลลัพธ์นี้</p>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="block text-sm font-bold mb-3 text-slate-700 dark:text-slate-300 border-b pb-2 dark:border-slate-700">เครื่องมือวิจัย</span>
+                    <div className="space-y-2.5 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                      {searchData.availableFilters.instruments.length > 0 ? searchData.availableFilters.instruments.map(f => (
+                        <label key={f.val} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300 cursor-pointer hover:text-indigo-600">
+                          <input type="checkbox" checked={searchData.selectedInstruments.includes(f.val)} onChange={() => searchData.setSelectedInstruments(searchData.selectedInstruments.includes(f.val) ? searchData.selectedInstruments.filter((i: string) => i!==f.val) : [...searchData.selectedInstruments, f.val])} className="w-4 h-4 mt-0.5 rounded text-indigo-600 focus:ring-indigo-500" />
+                          <span className="leading-snug">{f.val} ({f.count})</span>
+                        </label>
+                      )) : <p className="text-sm text-slate-400 italic">ไม่มีข้อมูลในผลลัพธ์นี้</p>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="block text-sm font-bold mb-3 text-slate-700 dark:text-slate-300 border-b pb-2 dark:border-slate-700">สถิติที่ใช้</span>
+                    <div className="space-y-2.5 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                      {searchData.availableFilters.statistics.length > 0 ? searchData.availableFilters.statistics.map(f => (
+                        <label key={f.val} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300 cursor-pointer hover:text-indigo-600">
+                          <input type="checkbox" checked={searchData.selectedStatistics.includes(f.val)} onChange={() => searchData.setSelectedStatistics(searchData.selectedStatistics.includes(f.val) ? searchData.selectedStatistics.filter((i: string) => i!==f.val) : [...searchData.selectedStatistics, f.val])} className="w-4 h-4 mt-0.5 rounded text-indigo-600 focus:ring-indigo-500" />
+                          <span className="leading-snug">{f.val} ({f.count})</span>
+                        </label>
+                      )) : <p className="text-sm text-slate-400 italic">ไม่มีข้อมูลในผลลัพธ์นี้</p>}
+                    </div>
+                  </div>
+                </div>
+             </div>
+
           </div>
         </div>
 
@@ -355,10 +476,6 @@ export default function Home() {
                       <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-full w-32"></div>
                       <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-full w-20"></div>
                     </div>
-                    <div className="flex justify-between items-center mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-                      <div className="flex gap-2"><div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-16"></div><div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-16"></div></div>
-                      <div className="flex gap-2"><div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-24"></div><div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-24"></div></div>
-                    </div>
                  </div>
                ))}
             </div>
@@ -374,7 +491,7 @@ export default function Home() {
               searchMode={searchData.searchMode} 
               onSelect={setSelectedThesis} 
               onAISummarySelect={setSelectedAISummary}
-              onChatSelect={setSelectedChatThesis} // ⭐️ ส่ง Prop เปิดแชท
+              onChatSelect={setSelectedChatThesis}
               onTagClick={handleTagClick} 
               onTrackStat={searchData.trackStat} 
               getPreviewUrl={getPreviewUrl} 
@@ -395,37 +512,16 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ⭐️ หน้าต่าง AI Chat Modal */}
+      {/* Modals */}
       {selectedChatThesis && (
-        <ThesisChatModal 
-          thesis={selectedChatThesis} 
-          onClose={() => setSelectedChatThesis(null)} 
-        />
+        <ThesisChatModal thesis={selectedChatThesis} onClose={() => setSelectedChatThesis(null)} />
       )}
-
-      {/* หน้าต่าง AI Summary Modal */}
       {selectedAISummary && (
-        <AISummaryModal 
-          thesis={selectedAISummary} 
-          onClose={() => setSelectedAISummary(null)} 
-          onOpenFullDetails={(thesis) => setSelectedThesis(thesis)} 
-        />
+        <AISummaryModal thesis={selectedAISummary} onClose={() => setSelectedAISummary(null)} onOpenFullDetails={(thesis) => setSelectedThesis(thesis)} />
       )}
-
-      {/* Modal เล่มเต็ม */}
       {selectedThesis && (
-        <ThesisModal 
-          thesis={selectedThesis} 
-          onClose={() => setSelectedThesis(null)} 
-          t={t} 
-          onTagClick={handleTagClick} 
-          onTrackStat={searchData.trackStat} 
-          getPreviewUrl={getPreviewUrl} 
-          getDirectDownloadUrl={getDirectDownloadUrl} 
-        />
+        <ThesisModal thesis={selectedThesis} onClose={() => setSelectedThesis(null)} t={t} onTagClick={handleTagClick} onTrackStat={searchData.trackStat} getPreviewUrl={getPreviewUrl} getDirectDownloadUrl={getDirectDownloadUrl} />
       )}
-
-      {/* Modal สถิติภาพรวม */}
       {showStatsModal && (
         <StatsModal onClose={() => setShowStatsModal(false)} t={t} />
       )}

@@ -1,6 +1,7 @@
 // constants/index.ts
 export const DICT: Record<string, any> = {
   th: {
+    recentItems: "ข้อมูลเข้าใหม่ (20 เล่มล่าสุด)",
     searchPlaceholder: "พิมพ์คำค้นหา...",
     advancedSearch: "ค้นหาขั้นสูง",
     addSearchField: "เพิ่มช่องค้นหา",
@@ -70,6 +71,7 @@ export const DICT: Record<string, any> = {
     }
   },
   en: {
+    recentItems: "Recent Uploads (Latest 20)",
     searchPlaceholder: "Type to search...",
     advancedSearch: "Advanced Search",
     addSearchField: "Add Field",
@@ -139,6 +141,7 @@ export const DICT: Record<string, any> = {
     }
   },
   ch: {
+    recentItems: "最新收录 (最新20篇)",
     searchPlaceholder: "输入搜索内容...",
     advancedSearch: "高级搜索",
     addSearchField: "添加搜索字段",

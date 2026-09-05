@@ -3,10 +3,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const buildCondition = (field: string, text: string) => {
@@ -21,7 +18,6 @@ const buildCondition = (field: string, text: string) => {
     case 'major': return `major.ilike.${safeText}`;
     case 'education_level': return `education_level.ilike.${safeText}`;
     case 'keyword': return `keywords.ilike.${safeText}`;
-    // ⭐️ อัปเดตให้ค้นหาครอบคลุมประเภททรัพยากรด้วย
     default: return `title_th.ilike.${safeText},title_en.ilike.${safeText},keywords.ilike.${safeText},author.ilike.${safeText},major.ilike.${safeText},advisor_1.ilike.${safeText},resource_type.ilike.${safeText}`;
   }
 };
@@ -43,11 +39,8 @@ export async function POST(req: Request) {
       if (timeframe === 'all') {
         const { data: dls } = await supabase.from('theses').select('id, title_th, author, download_count').order('download_count', { ascending: false }).limit(10);
         const { data: vws } = await supabase.from('theses').select('id, title_th, author, view_count').order('view_count', { ascending: false }).limit(10);
-        
         topDownloads = dls?.map((d: any) => ({ ...d, total_count: d.download_count })) || [];
         topViews = vws?.map((v: any) => ({ ...v, total_count: v.view_count })) || [];
-
-        // ⭐️ แก้ไข: ให้นับจำนวนจาก usage_logs โดยตรง แทนการบวก view_count
         const { count } = await supabase.from('usage_logs').select('*', { count: 'exact', head: true }).eq('action_type', 'view');
         totalVisits = count || 0;
       } else {
@@ -78,17 +71,17 @@ export async function POST(req: Request) {
     }
 
     const cleanRawQuery = (body.query || '').replace(/[\r\n]+/g, ' ').trim();
-    const { searchField, mode, extraQueries, isExactMatch } = body;
+    // ⭐️ เพิ่ม fetchAll มารับคำสั่ง
+    const { searchField, mode, extraQueries, isExactMatch, fetchAll } = body;
     
-    if (!cleanRawQuery && (!extraQueries || extraQueries.length === 0)) {
+    if (!cleanRawQuery && (!extraQueries || extraQueries.length === 0) && !fetchAll) {
       return NextResponse.json({ error: 'กรุณาใส่คำค้นหา' }, { status: 400 });
     }
 
     let data = [];
     let error = null;
     
-    // ⭐️ อัปเดต SELECT ให้ครอบคลุมทุกฟิลด์ที่เรามี
-    const SELECT_COLUMNS = 'id, title_th, title_en, author, publish_year, education_level, major, resource_type, abstract_th, abstract_en, advisor_1, advisor_2, advisor_3, tdc_url, drive_url, keywords, view_count, download_count, similarity, ai_summary, has_chat';
+    const SELECT_COLUMNS = 'id, title_th, title_en, author, publish_year, education_level, major, resource_type, abstract_th, abstract_en, advisor_1, advisor_2, advisor_3, tdc_url, drive_url, keywords, view_count, download_count, similarity, ai_summary, has_chat, research_type, sample_size, instruments, statistics';
 
     if (mode === 'Semantic') {
       const embeddingResponse = await openai.embeddings.create({ model: 'text-embedding-3-small', input: cleanRawQuery });
@@ -99,6 +92,14 @@ export async function POST(req: Request) {
       error = rpcError;
     } else {
       let dbQuery = supabase.from('theses').select(SELECT_COLUMNS.replace(', similarity', ''));
+      
+      // ⭐️ ถ้ามีคำสั่ง fetchAll ให้ดึง 20 รายการล่าสุดส่งกลับไปเลย ไม่ต้องสนใจเงื่อนไขค้นหา
+      if (fetchAll) {
+        const { data: recentData, error: recentError } = await dbQuery.order('id', { ascending: false }).limit(20);
+        if (recentError) throw recentError;
+        return NextResponse.json({ results: recentData || [] });
+      }
+
       if (isExactMatch && searchField === 'major' && cleanRawQuery) {
          const searchParts = cleanRawQuery.split(/\s+/);
          searchParts.forEach((part: string) => {

@@ -5,7 +5,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { 
   ArrowLeft, User, BookOpen, GraduationCap, Calendar, Eye, Download, 
-  ExternalLink, FileText, Sparkles, Bot, Quote, Share2, QrCode, CheckCircle2, Copy 
+  ExternalLink, FileText, Sparkles, Bot, Quote, Share2, QrCode, CheckCircle2, Copy, 
+  FlaskConical, Users, Wrench, BarChart2 
 } from "lucide-react";
 import { Thesis } from "../../types/thesis";
 import { ThesisChatModal } from "../../components/thesis/ThesisChatModal";
@@ -54,11 +55,13 @@ export default function ThesisDetailClient({ thesis }: Props) {
     }
   };
 
+  const hasMethodology = Boolean(thesis.research_type || thesis.sample_size || thesis.instruments || thesis.statistics);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-800 dark:text-slate-100 py-10 px-4 sm:px-6">
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* แถบย้อนกลับ */}
+        {/* Header / Breadcrumb */}
         <div className="flex justify-between items-center">
           <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition-all">
             <ArrowLeft className="w-4 h-4" /> กลับสู่หน้าสืบค้นหลัก
@@ -68,7 +71,7 @@ export default function ThesisDetailClient({ thesis }: Props) {
           </button>
         </div>
 
-        {/* กล่องหัวเรื่องหลัก */}
+        {/* รายละเอียดหลัก */}
         <div className="bg-white dark:bg-slate-900 p-6 md:p-10 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-6">
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
@@ -91,7 +94,6 @@ export default function ThesisDetailClient({ thesis }: Props) {
             )}
           </div>
 
-          {/* รายละเอียดผู้แต่งและอาจารย์ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-950 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 text-sm">
             <div><b className="text-slate-500 dark:text-slate-400">ผู้จัดทำ:</b> <span className="font-bold text-slate-800 dark:text-slate-200 ml-1">{thesis.author || "-"}</span></div>
             <div><b className="text-slate-500 dark:text-slate-400">ระดับการศึกษา:</b> <span className="font-bold text-slate-800 dark:text-slate-200 ml-1">{thesis.education_level || "-"}</span></div>
@@ -101,7 +103,42 @@ export default function ThesisDetailClient({ thesis }: Props) {
             )}
           </div>
 
-          {/* แถบปุ่ม Action หลัก */}
+          {/* ⭐️ การ์ดแสดงระเบียบวิธีวิจัย */}
+          {hasMethodology && (
+            <div className="p-6 bg-gradient-to-br from-indigo-50/70 to-blue-50/70 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 space-y-4">
+              <h4 className="font-extrabold text-indigo-900 dark:text-indigo-300 text-base flex items-center gap-2">
+                <FlaskConical className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> ระเบียบวิธีวิจัย (Research Methodology)
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                {thesis.research_type && (
+                  <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">ประเภทการวิจัย</span>
+                    <span className="font-bold text-indigo-700 dark:text-indigo-300">{thesis.research_type}</span>
+                  </div>
+                )}
+                {thesis.sample_size && (
+                  <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1 flex items-center gap-1"><Users className="w-3.5 h-3.5"/> ประชากรและกลุ่มตัวอย่าง</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{thesis.sample_size}</span>
+                  </div>
+                )}
+                {thesis.instruments && (
+                  <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1 flex items-center gap-1"><Wrench className="w-3.5 h-3.5"/> เครื่องมือที่ใช้</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{thesis.instruments}</span>
+                  </div>
+                )}
+                {thesis.statistics && (
+                  <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1 flex items-center gap-1"><BarChart2 className="w-3.5 h-3.5"/> สถิติที่ใช้ในการวิเคราะห์</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{thesis.statistics}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* แถบปุ่ม Action */}
           <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-4 text-slate-500 text-sm font-bold">
               <span className="flex items-center gap-1.5"><Eye className="w-4 h-4 text-blue-500" /> {thesis.view_count || 0} เข้าชม</span>
@@ -109,25 +146,37 @@ export default function ThesisDetailClient({ thesis }: Props) {
             </div>
 
             <div className="flex flex-wrap gap-2.5">
-              
-              {/* ⭐️ ซ่อนปุ่มแชทถ้าเล่มนี้ยังไม่ได้เตรียมไฟล์ */}
-              {thesis.has_chat && (
+              {Boolean(thesis.has_chat) && (
                 <button onClick={() => setShowChat(true)} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold px-4 py-2.5 rounded-xl shadow-md hover:scale-105 active:scale-95 transition-all text-sm">
                   <Bot className="w-4 h-4 text-amber-200" /> แชทถาม AI เล่มนี้
                 </button>
               )}
 
-              {/* ⭐️ ปุ่ม AI สรุป */}
-              {thesis.ai_summary && (
+              {Boolean(thesis.ai_summary) && (
                 <button onClick={() => setShowAISummary(true)} className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold px-4 py-2.5 rounded-xl shadow-md hover:scale-105 active:scale-95 transition-all text-sm">
                   <Sparkles className="w-4 h-4 text-amber-200 animate-pulse" /> AI สรุป
                 </button>
+              )}
+
+              <button onClick={() => setShowCitation(!showCitation)} className="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-xl hover:bg-slate-50 text-sm shadow-sm transition-all">
+                <Quote className="w-4 h-4 text-amber-500" /> อ้างอิง
+              </button>
+
+              <button onClick={() => copyText(currentUrl, 'share')} className="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-xl hover:bg-slate-50 text-sm shadow-sm transition-all">
+                {copiedId === 'share' ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4 text-purple-500" />}
+                {copiedId === 'share' ? 'คัดลอกแล้ว!' : 'แชร์ลิงก์'}
+              </button>
+
+              {thesis.drive_url && (
+                <a href={getDirectDownloadUrl(thesis.drive_url)} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl shadow-sm text-sm transition-colors">
+                  <Download className="w-4 h-4" /> ดาวน์โหลดเอกสาร
+                </a>
               )}
             </div>
           </div>
         </div>
 
-        {/* กล่องเปิดดู Citation ทันใจ */}
+        {/* กล่อง Citation */}
         {showCitation && (
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-blue-200 dark:border-blue-900/50 shadow-md space-y-4 animate-in fade-in">
             <h3 className="font-extrabold text-blue-700 dark:text-blue-400 text-base">รูปแบบการอ้างอิงทางวิชาการ (Citation)</h3>
@@ -169,7 +218,7 @@ export default function ThesisDetailClient({ thesis }: Props) {
           </div>
         )}
 
-        {/* คำสืบค้น (Keywords) */}
+        {/* คำสืบค้น */}
         {thesis.keywords && (
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">คำสืบค้น (Keywords)</h3>
@@ -185,7 +234,6 @@ export default function ThesisDetailClient({ thesis }: Props) {
 
       </div>
 
-      {/* ⭐️ Modals ต่างๆ เชื่อมต่อครบ */}
       {showChat && <ThesisChatModal thesis={thesis} onClose={() => setShowChat(false)} />}
       {showAISummary && <AISummaryModal thesis={thesis} onClose={() => setShowAISummary(false)} onOpenFullDetails={() => {}} />}
 

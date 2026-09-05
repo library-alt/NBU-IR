@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Edit, Trash2, Loader2, X, Save, Plus, Minus, BarChart3, Filter } from "lucide-react";
-import { Thesis } from "../types/thesis"; // ⭐️ Path ถูกต้อง
+import { Search, Edit, Trash2, Loader2, X, Save, Plus, Minus, BarChart3, Filter, RotateCcw } from "lucide-react";
+import { Thesis } from "../types/thesis";
 import { extractAndChunkPDF, cleanAndRepairThaiText } from "../utils/pdfChunker";
 
 export default function AdminDashboard() {
@@ -13,6 +13,11 @@ export default function AdminDashboard() {
   const [data, setData] = useState<Thesis[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  
+  // ⭐️ States สำหรับตัวกรองของ Admin
+  const [filterResourceType, setFilterResourceType] = useState("");
+  const [filterMajor, setFilterMajor] = useState("");
+
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   
@@ -27,7 +32,7 @@ export default function AdminDashboard() {
   
   // AI States
   const [isSummarizing, setIsSummarizing] = useState(false);
-  const [isIndexingChat, setIsIndexingChat] = useState(false); // ⭐️ State สำหรับทำดัชนีแชท
+  const [isIndexingChat, setIsIndexingChat] = useState(false);
 
   // Stats States
   const [stats, setStats] = useState<{resources: any[], majors: any[], total: number}>({ resources: [], majors: [], total: 0 });
@@ -38,10 +43,29 @@ export default function AdminDashboard() {
   const [isStatsLoading, setIsStatsLoading] = useState(false);
   const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
+  const MAJOR_OPTIONS = [
+    "หลักสูตรปรัชญาดุษฎีบัณฑิต สาขาวิชาการจัดการ",
+    "หลักสูตรปรัชญาดุษฎีบัณฑิต สาขาวิชาการบริหารการศึกษา",
+    "หลักสูตรปรัชญาดุษฎีบัณฑิต สาขาวิชาการพัฒนาธุรกิจและทุนมนุษย์",
+    "หลักสูตรปรัชญาดุษฎีบัณฑิต สาขาวิชาภาษาอังกฤษศึกษา",
+    "หลักสูตรบริหารธุรกิจมหาบัณฑิต สาขาวิชาการจัดการ",
+    "หลักสูตรรัฐประศาสนศาสตรมหาบัณฑิต สาขาวิชาการจัดการภาครัฐและเอกชน",
+    "หลักสูตรรัฐศาสตรมหาบัณฑิต สาขาวิชาการจัดการภาครัฐและเอกชน",
+    "หลักสูตรศิลปศาสตรมหาบัณฑิต สาขาวิชาการพัฒนาธุรกิจและทุนมนุษย์",
+    "หลักสูตรศิลปศาสตรมหาบัณฑิต สาขาวิชาภาษาอังกฤษศึกษา",
+    "หลักสูตรศึกษาศาสตรมหาบัณฑิต สาขาวิชาการบริหารการศึกษา",
+    "หลักสูตรศึกษาศาสตรมหาบัณฑิต สาขาวิชาหลักสูตรและการสอน",
+    "ด้านสังคมศาสตร์และสหวิทยาการ",
+    "ด้านศึกษาศาสตร์",
+    "ด้านสหวิทยาการ วิทยาศาสตร์และเทคโนโลยี",
+    "รายงานวิจัย"
+  ];
+
+  // ⭐️ อัปเดต fetchData ให้ส่งตัวกรองไปด้วย
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin?search=${search}&page=${page}`);
+      const res = await fetch(`/api/admin?search=${encodeURIComponent(search)}&page=${page}&resource_type=${encodeURIComponent(filterResourceType)}&major=${encodeURIComponent(filterMajor)}`);
       const json = await res.json();
       setData(json.data || []);
       setTotal(json.total || 0);
@@ -76,10 +100,11 @@ export default function AdminDashboard() {
     }
   };
 
+  // ดักฟังการเปลี่ยนแปลงตัวกรอง
   useEffect(() => {
-    const timer = setTimeout(() => { fetchData(); }, 500); 
+    const timer = setTimeout(() => { fetchData(); }, 300); 
     return () => clearTimeout(timer);
-  }, [search, page]);
+  }, [search, page, filterResourceType, filterMajor]);
 
   useEffect(() => {
     fetchStats();
@@ -110,7 +135,6 @@ export default function AdminDashboard() {
     } catch (err) { alert("เกิดข้อผิดพลาด"); } finally { setIsSaving(false); }
   };
 
-  // ⭐️ ฟังก์ชันส่ง PDF ให้ AI ช่วยสรุป
   const handleSummarize = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -124,22 +148,20 @@ export default function AdminDashboard() {
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       
       let extractedText = '';
-      const maxPages = Math.min(pdf.numPages, 100);
-      for (let i = 1; i <= maxPages; i++) {
+      for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         const rawText = textContent.items.map((item: any) => item.str).join(' ') + '\n';
-        // ⭐️ สั่งซ่อมสระไทยทันที
         extractedText += cleanAndRepairThaiText(rawText);
       }
 
-      if (!extractedText.trim()) throw new Error("ไม่สามารถอ่านตัวหนังสือจากไฟล์ PDF ได้ (อาจเป็นไฟล์สแกนรูปภาพ)");
+      if (!extractedText.trim()) throw new Error("ไม่สามารถอ่านตัวหนังสือจากไฟล์ PDF ได้");
 
       let textToSend = extractedText;
       if (extractedText.length > 100000) {
         const headText = extractedText.slice(0, 50000);
         const tailText = extractedText.slice(-50000);
-        textToSend = `${headText}\n\n...[ละเว้นเนื้อหาบางส่วนเพื่อความกระชับ]...\n\n${tailText}`;
+        textToSend = `${headText}\n\n...[ละเว้นเนื้อหากลางเล่ม]...\n\n${tailText}`;
       }
 
       const res = await fetch('/api/admin/summarize', { 
@@ -151,22 +173,26 @@ export default function AdminDashboard() {
       const data = await res.json().catch(() => null);
 
       if (res.ok && data?.summary) {
-        setEditingItem(prev => prev ? {...prev, ai_summary: data.summary} : null);
-        alert("✨ AI สรุปเนื้อหาฉบับสมบูรณ์สำเร็จ! กรุณาตรวจสอบและกดบันทึก");
+        setEditingItem(prev => prev ? {
+          ...prev, 
+          ai_summary: data.summary,
+          research_type: data.methodology?.research_type || prev.research_type,
+          sample_size: data.methodology?.sample_size || prev.sample_size,
+          instruments: data.methodology?.instruments || prev.instruments,
+          statistics: data.methodology?.statistics || prev.statistics,
+        } : null);
+        alert("✨ AI สรุปเนื้อหาและสกัดระเบียบวิธีวิจัยสำเร็จ! กรุณาตรวจเช็คและกดบันทึก");
       } else {
-        const errorMsg = data?.error || `Server ตอบกลับด้วยรหัสสถานะ: ${res.status}`;
-        alert("❌ เกิดข้อผิดพลาด: " + errorMsg);
+        alert("❌ เกิดข้อผิดพลาด: " + (data?.error || res.status));
       }
     } catch (err: any) {
-      console.error(err);
-      alert("❌ เกิดข้อผิดพลาด: " + (err.message || "การประมวลผลล้มเหลว"));
+      alert("❌ การประมวลผลล้มเหลว: " + err.message);
     } finally {
       setIsSummarizing(false);
       e.target.value = '';
     }
   };
 
-  // ⭐️ ฟังก์ชันเตรียมข้อมูลสำหรับแชท (Index Chunks)
   const handleIndexPDFForChat = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editingItem) return;
@@ -174,20 +200,42 @@ export default function AdminDashboard() {
     setIsIndexingChat(true);
     try {
       const chunks = await extractAndChunkPDF(file);
-      const res = await fetch('/api/admin/index-chunks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thesisId: editingItem.id, chunks })
+      
+      if (!chunks || chunks.length === 0) {
+        throw new Error("ไม่พบข้อความในไฟล์ PDF");
+      }
+
+      await fetch(`/api/admin/index-chunks?thesisId=${editingItem.id}`, { method: 'DELETE' });
+
+      const batchSize = 15;
+      const totalBatches = Math.ceil(chunks.length / batchSize);
+
+      for (let b = 0; b < totalBatches; b++) {
+        const batchChunks = chunks.slice(b * batchSize, (b + 1) * batchSize);
+        const res = await fetch('/api/admin/index-chunks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            thesisId: editingItem.id,
+            chunks: batchChunks,
+            startIndex: b * batchSize
+          })
+        });
+
+        if (!res.ok) throw new Error("บันทึกข้อมูลล้มเหลว");
+      }
+
+      await fetch('/api/admin', { 
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ id: editingItem.id, has_chat: true }) 
       });
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        alert(`✅ เตรียมข้อมูลสำหรับแชทสำเร็จ! หั่นได้ทั้งหมด ${data.count} ท่อนข้อความ`);
-      } else {
-        alert("❌ เกิดข้อผิดพลาด: " + data.error);
-      }
+      setEditingItem({ ...editingItem, has_chat: true });
+      alert(`✅ เตรียมข้อมูลสำหรับแชทสำเร็จเรียบร้อย!`);
     } catch (err: any) {
-      alert("❌ ประมวลผลล้มเหลว: " + err.message);
+      console.error(err);
+      alert("❌ ประมวลผลล้มเหลว: " + (err.message || "เกิดข้อผิดพลาด"));
     } finally {
       setIsIndexingChat(false);
       e.target.value = '';
@@ -203,7 +251,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* สถิติการนำเข้าข้อมูล */}
+      {/* สถิติการนำเข้าข้อมูลด้านบน */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 mb-8 overflow-hidden">
         <div className="bg-blue-50/50 p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h2 className="font-bold text-blue-800 flex items-center gap-2"><BarChart3 className="w-5 h-5"/> สถิติการนำข้อมูลเข้าระบบ</h2>
@@ -257,15 +305,63 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* ตารางจัดการข้อมูล */}
-      <div className="flex justify-between items-end mb-4">
-        <h2 className="text-xl font-bold text-slate-700">รายการข้อมูลในระบบ</h2>
-        <div className="relative w-full md:w-80">
-          <input type="text" placeholder="ค้นหาชื่อเรื่อง, ผู้แต่ง, สาขาวิชา..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 shadow-sm text-sm" />
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+      {/* ⭐️ ส่วนควบคุมตารางจัดการข้อมูล (เพิ่ม Dropdown ประเภททรัพยากร และ สาขาวิชา) */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
+        <h2 className="text-xl font-bold text-slate-700 whitespace-nowrap">รายการข้อมูลในระบบ</h2>
+        
+        <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+          
+          {/* ตัวกรองประเภททรัพยากร */}
+          <select 
+            value={filterResourceType} 
+            onChange={e => { setFilterResourceType(e.target.value); setPage(1); }}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 shadow-sm cursor-pointer"
+          >
+            <option value="">-- ทุกประเภททรัพยากร --</option>
+            <option value="วิทยานิพนธ์">วิทยานิพนธ์</option>
+            <option value="สารนิพนธ์">สารนิพนธ์</option>
+            <option value="รายงานวิจัย">รายงานวิจัย</option>
+            <option value="บทความวิจัยการประชุมวิชาการระดับชาติมหาวิทยาลัยนอร์ทกรุงเทพ">บทความวิจัยการประชุมวิชาการฯ</option>
+          </select>
+
+          {/* ตัวกรองสาขาวิชา */}
+          <select 
+            value={filterMajor} 
+            onChange={e => { setFilterMajor(e.target.value); setPage(1); }}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 shadow-sm max-w-[200px] truncate cursor-pointer"
+          >
+            <option value="">-- ทุกสาขาวิชา --</option>
+            {MAJOR_OPTIONS.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+
+          {/* ปุ่มรีเซ็ตตัวกรอง */}
+          {(filterResourceType || filterMajor || search) && (
+            <button 
+              onClick={() => { setFilterResourceType(""); setFilterMajor(""); setSearch(""); setPage(1); }} 
+              className="p-2 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-xl text-xs font-bold transition-colors"
+              title="ล้างการค้นหาและตัวกรอง"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* ช่องค้นหาคำ */}
+          <div className="relative flex-1 sm:w-64">
+            <input 
+              type="text" 
+              placeholder="ค้นหาชื่อเรื่อง, ผู้แต่ง..." 
+              value={search} 
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 outline-none focus:border-blue-500 shadow-sm text-xs sm:text-sm bg-white" 
+            />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          </div>
         </div>
       </div>
 
+      {/* ตารางข้อมูล */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -274,15 +370,16 @@ export default function AdminDashboard() {
                 <th className="p-4 font-bold w-12 text-center">ID</th>
                 <th className="p-4 font-bold">ชื่อเรื่อง (TH/EN)</th>
                 <th className="p-4 font-bold w-48">ผู้แต่ง & สาขา</th>
+                <th className="p-4 font-bold w-32 text-center">ประเภท</th>
                 <th className="p-4 font-bold w-24 text-center">ปีที่พิมพ์</th>
                 <th className="p-4 font-bold w-24 text-center">จัดการ</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" /></td></tr>
+                <tr><td colSpan={6} className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" /></td></tr>
               ) : data.length === 0 ? (
-                <tr><td colSpan={5} className="p-10 text-center text-slate-500 font-bold">ไม่พบข้อมูล</td></tr>
+                <tr><td colSpan={6} className="p-10 text-center text-slate-500 font-bold">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>
               ) : (
                 data.map((item) => (
                   <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
@@ -293,7 +390,12 @@ export default function AdminDashboard() {
                     </td>
                     <td className="p-4">
                       <p className="font-bold text-slate-700 text-sm line-clamp-1" title={item.author}>{item.author || "-"}</p>
-                      <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{item.major || "-"}</p>
+                      <p className="text-xs text-slate-500 line-clamp-1 mt-0.5" title={item.major}>{item.major || "-"}</p>
+                    </td>
+                    <td className="p-4 text-center">
+                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100">
+                        {item.resource_type || "วิทยานิพนธ์"}
+                      </span>
                     </td>
                     <td className="p-4 text-center font-bold text-slate-600">{item.publish_year || "-"}</td>
                     <td className="p-4 text-center">
@@ -309,13 +411,15 @@ export default function AdminDashboard() {
           </table>
         </div>
 
+        {/* Pagination */}
         <div className="p-4 border-t border-slate-200 flex justify-between items-center bg-slate-50">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold disabled:opacity-50">ก่อนหน้า</button>
-          <span className="text-sm font-bold text-slate-600">หน้า {page}</span>
-          <button onClick={() => setPage(p => p + 1)} disabled={data.length < 20} className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold disabled:opacity-50">ถัดไป</button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold disabled:opacity-50 hover:bg-slate-50">ก่อนหน้า</button>
+          <span className="text-sm font-bold text-slate-600">หน้า {page} จาก {Math.ceil(total / 20) || 1}</span>
+          <button onClick={() => setPage(p => p + 1)} disabled={data.length < 20} className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold disabled:opacity-50 hover:bg-slate-50">ถัดไป</button>
         </div>
       </div>
 
+      {/* Modal แก้ไขข้อมูล */}
       {editingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col">
@@ -331,7 +435,6 @@ export default function AdminDashboard() {
                   <div><label className="block text-sm font-bold mb-1">ชื่อเรื่อง (EN)</label><input type="text" value={editingItem.title_en || ''} onChange={e => setEditingItem({...editingItem, title_en: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500" /></div>
                 </div>
                 
-                {/* ผู้แต่งหลายคน */}
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
                   <label className="block text-sm font-bold mb-3 text-slate-700">ผู้จัดทำ / ผู้แต่ง (สามารถเพิ่มได้หลายคน)</label>
                   {authorList.map((author, idx) => (
@@ -354,11 +457,22 @@ export default function AdminDashboard() {
                   </div>
                   <div className="relative">
                     <label className="block text-sm font-bold mb-1">ประเภททรัพยากร</label><input type="text" value={editingItem.resource_type || ''} onChange={e => setEditingItem({...editingItem, resource_type: e.target.value})} onFocus={() => setShowResourceList(true)} onBlur={() => setTimeout(() => setShowResourceList(false), 200)} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500 bg-white" placeholder="เลือกหรือพิมพ์" />
-                    {showResourceList && <ul className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">{["วิทยานิพนธ์", "สารนิพนธ์", "รายงานวิจัย", "บทความวิจัย", "บทความวิจัยการประชุมวิชาการระดับชาติมหาวิทยาลัยนอร์ทกรุงเทพ"].map(type => <li key={type} onMouseDown={() => setEditingItem({...editingItem, resource_type: type})} className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-0">{type}</li>)}</ul>}
+                    {showResourceList && <ul className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">{["วิทยานิพนธ์", "สารนิพนธ์", "รายงานวิจัย", "บทความวิจัยการประชุมวิชาการระดับชาติมหาวิทยาลัยนอร์ทกรุงเทพ"].map(type => <li key={type} onMouseDown={() => setEditingItem({...editingItem, resource_type: type})} className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-0">{type}</li>)}</ul>}
                   </div>
                   <div className="relative">
                     <label className="block text-sm font-bold mb-1">สาขาวิชา</label><input type="text" value={editingItem.major || ''} onChange={e => setEditingItem({...editingItem, major: e.target.value})} onFocus={() => setShowMajorList(true)} onBlur={() => setTimeout(() => setShowMajorList(false), 200)} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500 bg-white" placeholder="เลือกหรือพิมพ์" />
-                    {showMajorList && <ul className="absolute right-0 z-10 w-[300px] mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">{["หลักสูตรปรัชญาดุษฎีบัณฑิต สาขาวิชาการจัดการ", "หลักสูตรปรัชญาดุษฎีบัณฑิต สาขาวิชาการบริหารการศึกษา", "หลักสูตรปรัชญาดุษฎีบัณฑิต สาขาวิชาการพัฒนาธุรกิจและทุนมนุษย์", "หลักสูตรปรัชญาดุษฎีบัณฑิต สาขาวิชาภาษาอังกฤษศึกษา", "หลักสูตรบริหารธุรกิจมหาบัณฑิต สาขาวิชาการจัดการ", "หลักสูตรรัฐประศาสนศาสตรมหาบัณฑิต สาขาวิชาการจัดการภาครัฐและเอกชน", "หลักสูตรรัฐศาสตรมหาบัณฑิต สาขาวิชาการจัดการภาครัฐและเอกชน", "หลักสูตรศิลปศาสตรมหาบัณฑิต สาขาวิชาการพัฒนาธุรกิจและทุนมนุษย์", "หลักสูตรศิลปศาสตรมหาบัณฑิต สาขาวิชาภาษาอังกฤษศึกษา", "หลักสูตรศึกษาศาสตรมหาบัณฑิต สาขาวิชาการบริหารการศึกษา", "หลักสูตรศึกษาศาสตรมหาบัณฑิต สาขาวิชาหลักสูตรและการสอน", "ด้านสังคมศาสตร์และสหวิทยาการ", "ด้านศึกษาศาสตร์", "ด้านสหวิทยาการ วิทยาศาสตร์และเทคโนโลยี"].map(major => <li key={major} onMouseDown={() => setEditingItem({...editingItem, major: major})} className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-0 leading-snug">{major}</li>)}</ul>}
+                    {showMajorList && <ul className="absolute right-0 z-10 w-[300px] mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">{MAJOR_OPTIONS.map(major => <li key={major} onMouseDown={() => setEditingItem({...editingItem, major: major})} className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-0 leading-snug">{major}</li>)}</ul>}
+                  </div>
+                </div>
+
+                {/* ระเบียบวิธีวิจัย */}
+                <div className="p-5 bg-blue-50/60 border border-blue-200 rounded-2xl space-y-4">
+                  <h3 className="font-extrabold text-blue-800 text-sm flex items-center gap-1.5">🔬 ระเบียบวิธีวิจัย (Research Methodology)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label className="block text-xs font-bold text-slate-600 mb-1">ประเภทการวิจัย</label><input type="text" value={editingItem.research_type || ''} onChange={e => setEditingItem({...editingItem, research_type: e.target.value})} className="w-full p-2.5 bg-white border rounded-xl text-sm" placeholder="เช่น วิจัยเชิงปริมาณ, วิจัยเชิงคุณภาพ" /></div>
+                    <div><label className="block text-xs font-bold text-slate-600 mb-1">ประชากรและกลุ่มตัวอย่าง</label><input type="text" value={editingItem.sample_size || ''} onChange={e => setEditingItem({...editingItem, sample_size: e.target.value})} className="w-full p-2.5 bg-white border rounded-xl text-sm" placeholder="เช่น ผู้บริโภคจำนวน 384 คน" /></div>
+                    <div><label className="block text-xs font-bold text-slate-600 mb-1">เครื่องมือวิจัย (คำสั้นๆ คั่นด้วยลูกน้ำ)</label><input type="text" value={editingItem.instruments || ''} onChange={e => setEditingItem({...editingItem, instruments: e.target.value})} className="w-full p-2.5 bg-white border rounded-xl text-sm" placeholder="เช่น แบบสอบถาม, แบบสัมภาษณ์" /></div>
+                    <div><label className="block text-xs font-bold text-slate-600 mb-1">สถิติที่ใช้ (คำสั้นๆ คั่นด้วยลูกน้ำ)</label><input type="text" value={editingItem.statistics || ''} onChange={e => setEditingItem({...editingItem, statistics: e.target.value})} className="w-full p-2.5 bg-white border rounded-xl text-sm" placeholder="เช่น t-test, ANOVA, Regression" /></div>
                   </div>
                 </div>
 
@@ -377,13 +491,11 @@ export default function AdminDashboard() {
                 <div><label className="block text-sm font-bold mb-1">บทคัดย่อ (TH) / สารสังเขป</label><textarea value={editingItem.abstract_th || ''} onChange={e => setEditingItem({...editingItem, abstract_th: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500 h-24" /></div>
                 <div><label className="block text-sm font-bold mb-1">บทคัดย่อ (EN)</label><textarea value={editingItem.abstract_en || ''} onChange={e => setEditingItem({...editingItem, abstract_en: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500 h-24" /></div>
 
-                {/* ⭐️ โซนอัปโหลด AI Summary & Chat Index */}
+                {/* โซน AI สรุป และ Chat Index */}
                 <div className="p-5 border-2 border-indigo-100 bg-indigo-50/50 rounded-2xl space-y-3">
                   <div className="flex flex-wrap justify-between items-center gap-2">
                     <label className="block text-sm font-bold text-indigo-800">✨ AI สรุปเนื้อหา (AI Summary)</label>
-                    
                     <div className="flex flex-wrap items-center gap-2">
-                      {/* ปุ่มสรุปเนื้อหา */}
                       <div className="relative">
                         <input type="file" accept="application/pdf" id="pdf-upload" onChange={handleSummarize} className="hidden" />
                         <label htmlFor="pdf-upload" className="cursor-pointer bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-100 font-bold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1.5 transition-colors shadow-sm">
@@ -391,7 +503,6 @@ export default function AdminDashboard() {
                         </label>
                       </div>
 
-                      {/* ⭐️ ปุ่มทำดัชนีสำหรับแชท */}
                       <div className="relative">
                         <input type="file" accept="application/pdf" id="pdf-chat-index" onChange={handleIndexPDFForChat} className="hidden" />
                         <label htmlFor="pdf-chat-index" className="cursor-pointer bg-purple-600 hover:bg-purple-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1.5 transition-colors shadow-sm">

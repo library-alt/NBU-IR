@@ -5,7 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { 
   X, Eye, Download, ExternalLink, Quote, Share2, Share, Link as LinkIcon, 
-  MessageSquare, Mail, CheckCircle2, Sparkles, Bot, Globe, FileText 
+  MessageSquare, Mail, CheckCircle2, Sparkles, Bot, Globe, FileText, FlaskConical, Users, Wrench, BarChart2 
 } from "lucide-react";
 import { Thesis } from "../../types/thesis";
 import { AISummaryModal } from "./AISummaryModal";
@@ -111,6 +111,9 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
     ));
   };
 
+  // ตรวจสอบว่ามีข้อมูลระเบียบวิธีวิจัยหรือไม่
+  const hasMethodology = Boolean(thesis.research_type || thesis.sample_size || thesis.instruments || thesis.statistics);
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
       <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 relative">
@@ -122,7 +125,7 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
           <h2 className="font-extrabold text-blue-700 dark:text-blue-400 mb-4 pr-8 leading-snug text-xl md:text-2xl">{thesis.title_th}</h2>
           {thesis.title_en && <h3 className="font-semibold text-slate-600 dark:text-slate-400 mb-6 pr-8 leading-snug text-lg md:text-xl italic">{thesis.title_en}</h3>}
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-8 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 text-sm md:text-base">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 text-sm md:text-base">
             <div className="flex flex-wrap gap-1 items-start">
               <b>{t.author}</b> <div className="inline-block">{renderAuthors(thesis.author)}</div>
             </div>
@@ -136,6 +139,41 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
               {thesis.advisor_3 ? <>, <button onClick={() => handleTag("advisor", thesis.advisor_3!)} className="text-blue-600 hover:underline">{thesis.advisor_3}</button></> : ''}
             </p>
           </div>
+
+          {/* ⭐️ การ์ดแสดงระเบียบวิธีวิจัย (ถ้ามีข้อมูล) */}
+          {hasMethodology && (
+            <div className="mb-8 p-6 bg-gradient-to-br from-indigo-50/70 to-blue-50/70 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 space-y-4">
+              <h4 className="font-extrabold text-indigo-900 dark:text-indigo-300 text-base flex items-center gap-2">
+                <FlaskConical className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> ระเบียบวิธีวิจัย (Research Methodology)
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                {thesis.research_type && (
+                  <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">ประเภทการวิจัย</span>
+                    <span className="font-bold text-indigo-700 dark:text-indigo-300">{thesis.research_type}</span>
+                  </div>
+                )}
+                {thesis.sample_size && (
+                  <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1 flex items-center gap-1"><Users className="w-3.5 h-3.5"/> ประชากรและกลุ่มตัวอย่าง</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{thesis.sample_size}</span>
+                  </div>
+                )}
+                {thesis.instruments && (
+                  <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1 flex items-center gap-1"><Wrench className="w-3.5 h-3.5"/> เครื่องมือที่ใช้</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{thesis.instruments}</span>
+                  </div>
+                )}
+                {thesis.statistics && (
+                  <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1 flex items-center gap-1"><BarChart2 className="w-3.5 h-3.5"/> สถิติที่ใช้ในการวิเคราะห์</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{thesis.statistics}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-8">
             <div>
@@ -164,10 +202,8 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
           </div>
         </div>
         
-        {/* ⭐️ Actions Footer (ยกเครื่องใหม่ ดีไซน์พรีเมียม สวยสะดุดตา) */}
+        {/* Actions Footer */}
         <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-3 relative justify-center sm:justify-between">
-          
-          {/* ตัวเลขสถิติแบบ Pill สีสันสวยงาม */}
           <div className="flex items-center gap-4 text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-extrabold px-4 py-2.5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
              <span title="ยอดเข้าชม" className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400"><Eye className="w-4 h-4" /> {thesis.view_count || 0}</span>
              <span className="w-px h-4 bg-slate-200 dark:bg-slate-700"></span>
@@ -175,44 +211,25 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
           </div>
 
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-center">
-            
-            {/* 🤖 ปุ่มแชท AI (โชว์เฉพาะเล่มที่มีข้อมูล) */}
             {Boolean(thesis.has_chat) && (
-              <button 
-                onClick={() => setShowChat(true)} 
-                className="flex items-center gap-1.5 font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all"
-                title="แชทคุยสอบถามเนื้อหาในเล่มกับ AI"
-              >
+              <button onClick={() => setShowChat(true)} className="flex items-center gap-1.5 font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all">
                 <Bot className="w-4 h-4 text-amber-200" /> แชท AI
               </button>
             )}
 
-            {/* ✨ ปุ่ม AI สรุป (โชว์เฉพาะเล่มที่มีบทสรุป) */}
             {Boolean(thesis.ai_summary) && (
-              <button 
-                onClick={() => setShowAISummary(true)} 
-                className="flex items-center gap-1.5 font-bold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all"
-                title="อ่านบทสรุปย่อ 4 หัวข้อโดย AI"
-              >
+              <button onClick={() => setShowAISummary(true)} className="flex items-center gap-1.5 font-bold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all">
                 <Sparkles className="w-4 h-4 text-amber-200 animate-pulse" /> AI สรุป
               </button>
             )}
 
-            {/* 🌐 ปุ่มหน้าเฉพาะเล่ม (สไตล์ Minimal Soft Blue) */}
-            <Link 
-              href={`/thesis/${thesis.id}`} 
-              target="_blank" 
-              className="flex items-center gap-1.5 font-bold text-blue-700 dark:text-blue-300 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-4 py-2.5 rounded-2xl border border-blue-200 dark:border-blue-800 text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition-all"
-            >
+            <Link href={`/thesis/${thesis.id}`} target="_blank" className="flex items-center gap-1.5 font-bold text-blue-700 dark:text-blue-300 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-4 py-2.5 rounded-2xl border border-blue-200 dark:border-blue-800 text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition-all">
               <Globe className="w-4 h-4 text-blue-600" /> หน้าเฉพาะเล่ม
             </Link>
 
-            {/* 📖 ปุ่ม Citation */}
+            {/* Citation */}
             <div className="relative">
-              <button 
-                onClick={() => setShowCitationModal(!showCitationModal)} 
-                className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition-all"
-              >
+              <button onClick={() => setShowCitationModal(!showCitationModal)} className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-100 dark:bg-slate-800 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition-all">
                 <Quote className="w-4 h-4 text-amber-500" /> อ้างอิง
               </button>
 
@@ -228,12 +245,9 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
               )}
             </div>
 
-            {/* 🔗 ปุ่มแชร์ */}
+            {/* Share */}
             <div className="relative">
-              <button 
-                onClick={() => setShowShareModal(!showShareModal)} 
-                className={`flex items-center gap-1.5 font-bold px-4 py-2.5 rounded-2xl border text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition-all ${copiedId?.startsWith('share') ? 'bg-emerald-50 text-emerald-600 border-emerald-300 dark:bg-emerald-950/40' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700'}`}
-              >
+              <button onClick={() => setShowShareModal(!showShareModal)} className={`flex items-center gap-1.5 font-bold px-4 py-2.5 rounded-2xl border text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition-all ${copiedId?.startsWith('share') ? 'bg-emerald-50 text-emerald-600 border-emerald-300' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200'}`}>
                 {copiedId?.startsWith('share') ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4 text-purple-500" />} 
                 <span>{copiedId?.startsWith('share') ? 'คัดลอกแล้ว' : 'แชร์'}</span>
               </button>
@@ -244,41 +258,27 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
                   <button onClick={() => triggerShare(thesis, 'native')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-blue-50 text-slate-700 dark:text-slate-300 hover:text-blue-600"><Share className="w-3.5 h-3.5" /> แชร์ผ่านมือถือ</button>
                   <button onClick={() => triggerShare(thesis, 'copy')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-blue-50 text-slate-700 dark:text-slate-300 hover:text-blue-600"><LinkIcon className="w-3.5 h-3.5" /> คัดลอกลิงก์</button>
                   <button onClick={() => triggerShare(thesis, 'line')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-[#00c300]/10 text-slate-700 dark:text-slate-300 hover:text-[#00c300]"><MessageSquare className="w-3.5 h-3.5" /> LINE</button>
-                  <button onClick={() => triggerShare(thesis, 'facebook')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-[#1877F2]/10 text-slate-700 dark:text-slate-300 hover:text-[#1877F2]"><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg> Facebook</button>
+                  <button onClick={() => triggerShare(thesis, 'facebook')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-[#1877F2]/10 text-slate-700 dark:text-slate-300 hover:text-[#1877F2]"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg> Facebook</button>
                   <button onClick={() => triggerShare(thesis, 'email')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-red-50 text-slate-700 dark:text-slate-300 hover:text-red-600"><Mail className="w-3.5 h-3.5" /> Gmail (อีเมล)</button>
                 </div>
               )}
             </div>
 
-            {/* 📥 ปุ่มดาวน์โหลด (สีเขียวมรกต CTA โดดเด่น) */}
             {thesis.drive_url && (
-              <a 
-                href={getDirectDownloadUrl(thesis.drive_url)} 
-                onClick={() => onTrackStat(thesis.id, 'download')} 
-                className="flex items-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all"
-              >
+              <a href={getDirectDownloadUrl(thesis.drive_url)} onClick={() => onTrackStat(thesis.id, 'download')} className="flex items-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all">
                 <Download className="w-4 h-4" /> ดาวน์โหลด
               </a>
             )}
 
-            {/* ↗ ปุ่ม TDC */}
             {thesis.tdc_url && (
-              <a 
-                href={thesis.tdc_url} 
-                target="_blank" 
-                rel="noreferrer" 
-                onClick={() => onTrackStat(thesis.id, 'view')} 
-                className="flex items-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all"
-              >
+              <a href={thesis.tdc_url} target="_blank" rel="noreferrer" onClick={() => onTrackStat(thesis.id, 'view')} className="flex items-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all">
                 <ExternalLink className="w-4 h-4" /> TDC
               </a>
             )}
-
           </div>
         </div>
       </div>
 
-      {/* Modals พิเศษ */}
       {showAISummary && <AISummaryModal thesis={thesis} onClose={() => setShowAISummary(false)} onOpenFullDetails={() => {}} />}
       {showChat && <ThesisChatModal thesis={thesis} onClose={() => setShowChat(false)} />}
     </div>

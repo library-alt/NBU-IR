@@ -7,9 +7,13 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// ⭐️ 1. GET: ดึงข้อมูล + ค้นหา + กรองประเภททรัพยากร & สาขาวิชา + แบ่งหน้า
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search') || '';
+  const resourceType = searchParams.get('resource_type') || ''; // ⭐️ รับค่าประเภททรัพยากร
+  const major = searchParams.get('major') || '';                 // ⭐️ รับค่าสาขาวิชา
+  
   const page = parseInt(searchParams.get('page') || '1');
   const limit = 20;
   const start = (page - 1) * limit;
@@ -17,8 +21,19 @@ export async function GET(req: Request) {
 
   let query = supabase.from('theses').select('*', { count: 'exact' });
 
+  // ค้นหาตามคำ
   if (search) {
     query = query.or(`title_th.ilike.%${search}%,author.ilike.%${search}%,major.ilike.%${search}%`);
+  }
+
+  // ⭐️ กรองตามประเภททรัพยากร
+  if (resourceType) {
+    query = query.eq('resource_type', resourceType);
+  }
+
+  // ⭐️ กรองตามสาขาวิชา
+  if (major) {
+    query = query.eq('major', major);
   }
 
   const { data, count, error } = await query.order('id', { ascending: false }).range(start, end);
@@ -27,6 +42,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ data, total: count });
 }
 
+// 2. PUT: อัปเดตข้อมูล
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
@@ -39,6 +55,7 @@ export async function PUT(req: Request) {
   }
 }
 
+// 3. DELETE: ลบข้อมูล
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -51,16 +68,14 @@ export async function DELETE(req: Request) {
   }
 }
 
-// ⭐️ ดึงข้อมูลสถิติแยกตามประเภทและสาขาวิชา (ใช้ RPC ไม่มีลิมิต 1,000 แล้ว!)
+// 4. POST: สถิติด้านบนของหน้า Admin (RPC)
 export async function POST(req: Request) {
   try {
     const { startYear, endYear, startMonth, endMonth } = await req.json();
 
-    // คำนวณช่วงเวลา (รองรับ พ.ศ.)
     const start = new Date(startYear - 543, startMonth - 1, 1).toISOString();
     const end = new Date(endYear - 543, endMonth, 0, 23, 59, 59).toISOString();
 
-    // 1. เรียกใช้ Function นับสถิติที่เราเพิ่งสร้าง
     const { data: statsData, error: statsError } = await supabase.rpc('get_import_stats', {
       start_date: start,
       end_date: end
@@ -68,7 +83,6 @@ export async function POST(req: Request) {
 
     if (statsError) throw statsError;
 
-    // 2. ดึงยอดรวมทั้งหมดในช่วงเวลานั้น (ใช้ head: true ไม่เปลืองเน็ตเวิร์ก)
     const { count: total, error: countError } = await supabase
       .from('theses')
       .select('*', { count: 'exact', head: true })
@@ -77,9 +91,8 @@ export async function POST(req: Request) {
 
     if (countError) throw countError;
 
-    // แยกข้อมูลออกมาเป็น 2 กลุ่ม
     const resources = statsData?.filter((item: any) => item.category === 'resource_type').sort((a: any, b: any) => b.count - a.count) || [];
-    const majors = statsData?.filter((item: any) => item.category === 'major') || []; // ไม่ต้อง sort เพราะ DB ทำมาให้แล้ว
+    const majors = statsData?.filter((item: any) => item.category === 'major') || [];
 
     return NextResponse.json({ 
       resources,

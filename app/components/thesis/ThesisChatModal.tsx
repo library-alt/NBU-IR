@@ -19,23 +19,23 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   sources?: SourceSnippet[];
-  suggestedQuestions?: string[]; // ⭐️ คำถามแนะนำเฉพาะของข้อความนั้น
+  suggestedQuestions?: string[];
 }
 
 export function ThesisChatModal({ thesis, onClose }: ThesisChatModalProps) {
-  // คำถามเริ่มต้นสำหรับเปิดประเด็น
-  const INITIAL_QUESTIONS = [
+  // คำถามเริ่มต้นเปิดประเด็น
+  const DEFAULT_QUESTIONS = [
     "🎯 วัตถุประสงค์หลักของงานวิจัยนี้คืออะไร?",
-    "👥 กลุ่มตัวอย่างและประชากรมีกี่คน และอยู่ที่ไหน?",
     "📊 ผลการวิจัยสำคัญสรุปได้ว่าอย่างไร?",
+    "👥 กลุ่มตัวอย่างและประชากรมีกี่คน?",
     "💡 มีข้อเสนอแนะสำหรับการนำไปใช้อย่างไร?"
   ];
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     { 
       role: 'assistant', 
-      content: `สวัสดีครับ! ผมคือผู้ช่วยวิจัยอัจฉริยะสำหรับงานวิจัยเรื่อง **"${thesis.title_th}"**\nมีอะไรให้ผมช่วยค้นหา หรือสรุปข้อมูลจากเล่มนี้ พิมพ์ถาม หรือเลือกคำถามด้านล่างได้เลยครับ!`,
-      suggestedQuestions: INITIAL_QUESTIONS
+      content: `สวัสดีครับ! ผมคือผู้ช่วยวิจัยอัจฉริยะสำหรับงานวิจัยเรื่อง **"${thesis.title_th}"**\nมีอะไรให้ผมช่วยค้นหา หรือสรุปข้อมูลจากเล่มนี้ พิมพ์ถาม หรือเลือกคำถามแนะนำด้านล่างได้เลยครับ!`,
+      suggestedQuestions: DEFAULT_QUESTIONS
     }
   ]);
   const [input, setInput] = useState("");
@@ -68,16 +68,21 @@ export function ThesisChatModal({ thesis, onClose }: ThesisChatModalProps) {
           role: 'assistant', 
           content: data.answer,
           sources: data.sources,
-          suggestedQuestions: data.suggestedQuestions // ⭐️ รับคำถามต่อเนื่องมาจาก AI
+          suggestedQuestions: (data.suggestedQuestions && data.suggestedQuestions.length > 0) ? data.suggestedQuestions : DEFAULT_QUESTIONS
         }]);
       } else {
         setMessages(prev => [...prev, { 
           role: 'assistant', 
-          content: `ขออภัยครับ: ${data.error || 'ไม่สามารถค้นหาคำตอบได้'}` 
+          content: `ขออภัยครับ: ${data.error || 'ไม่สามารถค้นหาคำตอบได้'}`,
+          suggestedQuestions: DEFAULT_QUESTIONS
         }]);
       }
     } catch (err: any) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง" }]);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: "เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง",
+        suggestedQuestions: DEFAULT_QUESTIONS
+      }]);
     } finally { 
       setLoading(false); 
     }
@@ -117,11 +122,11 @@ export function ThesisChatModal({ thesis, onClose }: ThesisChatModalProps) {
     });
   };
 
-  // ดึงคำถามแนะนำจากข้อความล่าสุดของ AI
+  // ⭐️ ดึงคำถามแนะนำจากข้อความล่าสุดเสมอ ถ้าไม่มีให้ใช้คำถามหลัก
   const lastMessage = messages[messages.length - 1];
   const currentSuggestions = (lastMessage?.role === 'assistant' && lastMessage.suggestedQuestions && lastMessage.suggestedQuestions.length > 0)
     ? lastMessage.suggestedQuestions
-    : [];
+    : DEFAULT_QUESTIONS;
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-in fade-in">
@@ -142,7 +147,7 @@ export function ThesisChatModal({ thesis, onClose }: ThesisChatModalProps) {
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors cursor-pointer">
             <X className="w-5 h-5 text-white" />
           </button>
         </div>
@@ -180,18 +185,18 @@ export function ThesisChatModal({ thesis, onClose }: ThesisChatModalProps) {
             </div>
           )}
 
-          {/* ⭐️ คำถามแนะนำต่อเนื่อง (จะโชว์ตลอดเวลาตามคำตอบล่าสุด และจะไม่ขึ้นถ้าตอบไม่ได้) */}
+          {/* ⭐️ แถบคำถามแนะนำต่อเนื่อง (โชว์ตลอดเวลา เดาใจผู้ใช้ทุกคำตอบ) */}
           {!loading && currentSuggestions.length > 0 && (
             <div className="pt-2 pl-11 space-y-2">
               <p className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-purple-500" /> คำถามต่อเนื่องที่เกี่ยวข้อง (คลิกเพื่อถามต่อได้ทันที):
+                <Sparkles className="w-3 h-3 text-purple-500" /> คำถามที่แนะนำให้ถามต่อ:
               </p>
               <div className="flex flex-wrap gap-2">
                 {currentSuggestions.map((q, idx) => (
                   <button
                     key={idx}
                     onClick={() => sendQuestion(q)}
-                    className="text-xs font-semibold px-3 py-2 bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-xl transition-all shadow-sm hover:scale-[1.02] text-left flex items-center gap-1.5"
+                    className="text-xs font-semibold px-3 py-2 bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-xl transition-all shadow-sm hover:scale-[1.02] text-left flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>{q}</span>
                     <ArrowRight className="w-3 h-3 opacity-60 shrink-0" />
@@ -223,7 +228,7 @@ export function ThesisChatModal({ thesis, onClose }: ThesisChatModalProps) {
           </button>
         </form>
 
-        {/* Modal แสดงข้อความจริงจาก PDF */}
+        {/* Modal ข้อความจริงจาก PDF */}
         {activeSource && (
           <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
             <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col space-y-4">
@@ -237,13 +242,13 @@ export function ThesisChatModal({ thesis, onClose }: ThesisChatModalProps) {
                     <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">อ้างอิงจาก: หน้า {activeSource.page}</span>
                   </div>
                 </div>
-                <button onClick={() => setActiveSource(null)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 rounded-full">
+                <button onClick={() => setActiveSource(null)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 rounded-full cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 max-h-60 overflow-y-auto text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-sans italic relative">
-                <Quote className="w-8 h-8 text-blue-200 dark:text-slate-800 absolute top-2 right-2 pointer-events-none" />
+                <Quote className="w-8 h-8 text-blue-200 dark:text-slate-800 absolute top-2 right-2 pointer-none" />
                 "{activeSource.content}"
               </div>
 
