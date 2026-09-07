@@ -37,6 +37,7 @@ ${thesisMeta.ai_summary || ''}`;
 
     const questionEmbeddingRes = await openai.embeddings.create({
       model: 'text-embedding-3-small',
+      dimensions: 512, //
       input: cleanQuestion,
     });
     const questionEmbedding = questionEmbeddingRes.data[0].embedding;

@@ -34,6 +34,7 @@ export async function POST(req: Request) {
 
     const embeddingRes = await openai.embeddings.create({
       model: 'text-embedding-3-small',
+      dimensions: 512, //
       input: chunks.map((b: any) => b.content)
     });
 
