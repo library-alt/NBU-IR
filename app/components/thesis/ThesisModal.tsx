@@ -1,15 +1,9 @@
-// components/thesis/ThesisModal.tsx
+// app/components/thesis/ThesisModal.tsx
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { 
-  X, Eye, Download, ExternalLink, Quote, Share2, Share, Link as LinkIcon, 
-  MessageSquare, Mail, CheckCircle2, Sparkles, Bot, Globe, FileText, FlaskConical, Users, Wrench, BarChart2 
-} from "lucide-react";
+import { X, Download, ExternalLink, Bookmark, User, GraduationCap, Calendar, BookOpen, Tag, Share2, Check, FlaskConical, FileText } from "lucide-react";
 import { Thesis } from "../../types/thesis";
-import { AISummaryModal } from "./AISummaryModal";
-import { ThesisChatModal } from "./ThesisChatModal";
 
 interface ThesisModalProps {
   thesis: Thesis;
@@ -21,78 +15,23 @@ interface ThesisModalProps {
   getDirectDownloadUrl: (url: string) => string;
 }
 
-export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPreviewUrl, getDirectDownloadUrl }: ThesisModalProps) {
-  const [showCitationModal, setShowCitationModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [showAISummary, setShowAISummary] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+export function ThesisModal({
+  thesis,
+  onClose,
+  t,
+  onTagClick,
+  onTrackStat,
+  getPreviewUrl,
+  getDirectDownloadUrl
+}: ThesisModalProps) {
+  const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'th' | 'en'>('th');
 
-  const generateCitation = (item: Thesis, style: string) => {
-    const author = (item.author || "ไม่ปรากฏชื่อผู้แต่ง").trim().replace(/\s+/g, '  ');
-    const year = item.publish_year || "ม.ป.ป.";
-    const title = (item.title_th || item.title_en || "").trim();
-    const resourceType = item.resource_type || "วิทยานิพนธ์";
-    
-    let eduLevel = item.education_level || "";
-    if (eduLevel.includes("ปริญญาเอก")) eduLevel = "ปรัชญาดุษฎีบัณฑิต";
-    else if (eduLevel.includes("ปริญญาโท")) eduLevel = "มหาบัณฑิต";
-    else if (eduLevel.includes("ปริญญาตรี")) eduLevel = "บัณฑิต";
-    else eduLevel = eduLevel.replace("ระดับ", "");
-
-    let rawMajor = (item.major || "").trim().replace(/\s+/g, ' ');
-    if (rawMajor.startsWith("หลักสูตร")) rawMajor = rawMajor.replace(/^หลักสูตร/, '').trim();
-
-    let degreeName = eduLevel;
-    let majorName = rawMajor;
-
-    if (rawMajor.includes("สาขาวิชา")) {
-      const parts = rawMajor.split("สาขาวิชา");
-      degreeName = parts[0].trim(); 
-      majorName = parts[1].trim();  
-    }
-
-    switch (style) {
-      case 'NBU': return `${author}.  (${year}).  ${title}.  ${resourceType}ปริญญา${degreeName} สาขาวิชา${majorName}.  กรุงเทพฯ:  บัณฑิตวิทยาลัย มหาวิทยาลัยนอร์ทกรุงเทพ.`;
-      case 'APA7': return `${author}. (${year}). ${title} [${resourceType}, North Bangkok University].`;
-      case 'MLA9': return `${author}. "${title}." ${resourceType}, North Bangkok University, ${year}.`;
-      case 'Chicago': return `${author}. "${title}." ${resourceType}, North Bangkok University, ${year}.`;
-      case 'Vancouver': return `${author}. ${title} [${resourceType}]. Bangkok: North Bangkok University; ${year}.`;
-      case 'Harvard': return `${author}, ${year}. ${title}. ${resourceType}. North Bangkok University.`;
-      default: return '';
-    }
-  };
-
-  const copyCitation = (item: Thesis, style: string) => {
-    const text = generateCitation(item, style);
-    navigator.clipboard.writeText(text);
-    setCopiedId(`cite-${style}`);
-    setTimeout(() => { setCopiedId(null); setShowCitationModal(false); }, 1500);
-  };
-
-  const triggerShare = async (item: Thesis, platform: string) => {
-    const url = `${window.location.origin}/thesis/${item.id}`;
-    const title = item.title_th || item.title_en || 'วิทยานิพนธ์/สารนิพนธ์';
-    const text = `แวะมาอ่านวิทยานิพนธ์/สารนิพนธ์เรื่องนี้ดูสิ: "${title}" โดย ${item.author || '-'} - คลังข้อมูลมหาวิทยาลัยนอร์ทกรุงเทพ`;
-
-    if (platform === 'native') {
-        try { await navigator.share({ title: 'NBU Search', text: text, url: url }); setShowShareModal(false); return;
-        } catch (err) { console.log('Share canceled', err); }
-    }
-    if (platform === 'copy') {
-        navigator.clipboard.writeText(url);
-        setCopiedId('share-copy');
-        setTimeout(() => { setCopiedId(null); setShowShareModal(false); }, 1500);
-        return;
-    }
-
-    let shareUrl = '';
-    if (platform === 'line') shareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
-    if (platform === 'facebook') shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-    if (platform === 'email') shareUrl = `mailto:?subject=${encodeURIComponent('แนะนำบทความวิจัย NBU')}&body=${encodeURIComponent(text + '\n\n' + url)}`;
-    
-    if (shareUrl) window.open(shareUrl, '_blank');
-    setShowShareModal(false);
+  const handleShare = () => {
+    const url = `${window.location.origin}/?id=${thesis.id}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleTag = (field: string, value: string) => {
@@ -100,187 +39,165 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
     onClose();
   };
 
-  const renderAuthors = (authorString: string) => {
-    if (!authorString) return "-";
-    const authors = authorString.split(/\s*,\s*|\s+และ\s+|\s+and\s+/i).map(a => a.trim()).filter(a => a);
-    return authors.map((a, idx) => (
-      <span key={idx}>
-        <button onClick={() => handleTag("author", a)} className="text-blue-600 hover:underline">{a}</button>
-        {idx < authors.length - 1 && <span className="text-slate-500 mr-1">,</span>}
-      </span>
-    ));
-  };
-
-  // ตรวจสอบว่ามีข้อมูลระเบียบวิธีวิจัยหรือไม่
-  const hasMethodology = Boolean(thesis.research_type || thesis.sample_size || thesis.instruments || thesis.statistics);
+  const authors = (thesis.author || "").split(/\s*,\s*|\s+และ\s+|\s+and\s+/i).map(a => a.trim()).filter(Boolean);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 hover:bg-red-100 text-slate-600 dark:text-slate-400 hover:text-red-600 rounded-full transition-all z-10">
-          <X className="w-5 h-5" />
-        </button>
-
-        <div className="p-6 md:p-10 overflow-y-auto pb-10">
-          <h2 className="font-extrabold text-blue-700 dark:text-blue-400 mb-4 pr-8 leading-snug text-xl md:text-2xl">{thesis.title_th}</h2>
-          {thesis.title_en && <h3 className="font-semibold text-slate-600 dark:text-slate-400 mb-6 pr-8 leading-snug text-lg md:text-xl italic">{thesis.title_en}</h3>}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 text-sm md:text-base">
-            <div className="flex flex-wrap gap-1 items-start">
-              <b>{t.author}</b> <div className="inline-block">{renderAuthors(thesis.author)}</div>
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
+        
+        {/* Header */}
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start gap-4 bg-slate-50/50 dark:bg-slate-950/40">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                {thesis.resource_type || "วิทยานิพนธ์"}
+              </span>
+              {thesis.publish_year && (
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  พ.ศ. {thesis.publish_year}
+                </span>
+              )}
             </div>
-            
-            <p><b>{t.publishYear}</b> {thesis.publish_year ? `${thesis.publish_year}` : <span className="text-red-500 font-semibold">{t.noYear}</span>}</p>
-            <p><b>{t.eduLevel}</b> {thesis.education_level || "-"}</p>
-            <p className="md:col-span-2"><b>{t.major}</b> {thesis.major ? <button onClick={() => handleTag("major", (thesis.major || '').trim().replace(/\s+/g, ' '))} className="text-blue-600 hover:underline text-left">{thesis.major.trim().replace(/\s+/g, ' ')}</button> : "-"}</p>
-            <p className="md:col-span-2"><b>{t.advisor}</b> 
-              {thesis.advisor_1 ? <button onClick={() => handleTag("advisor", thesis.advisor_1!)} className="text-blue-600 hover:underline ml-2">{thesis.advisor_1}</button> : "-"}
-              {thesis.advisor_2 ? <>, <button onClick={() => handleTag("advisor", thesis.advisor_2!)} className="text-blue-600 hover:underline">{thesis.advisor_2}</button></> : ''}
-              {thesis.advisor_3 ? <>, <button onClick={() => handleTag("advisor", thesis.advisor_3!)} className="text-blue-600 hover:underline">{thesis.advisor_3}</button></> : ''}
-            </p>
+            <h2 className="text-xl md:text-2xl font-extrabold text-blue-700 dark:text-blue-400 leading-snug">
+              {thesis.title_th}
+            </h2>
+            {thesis.title_en && (
+              <h3 className="text-sm md:text-base font-semibold text-slate-500 dark:text-slate-400 italic mt-1">
+                {thesis.title_en}
+              </h3>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button onClick={handleShare} className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors" title="คัดลอกลิงก์แชร์">
+              {copied ? <Check className="w-5 h-5 text-emerald-500" /> : <Share2 className="w-5 h-5" />}
+            </button>
+            <button onClick={onClose} className="p-2.5 rounded-full hover:bg-red-50 hover:text-red-600 text-slate-400 transition-colors">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Body Content */}
+        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+          
+          {/* ⭐️ แถบแสดงเลขเรียกหนังสือ (Call Number) */}
+          {thesis.call_number && (
+            <div className="flex items-center gap-2.5 p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl text-amber-900 dark:text-amber-200 font-bold text-sm shadow-sm">
+              <Bookmark className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span className="text-amber-800 dark:text-amber-400">เลขเรียกหนังสือ (Call Number):</span>
+              <span className="font-extrabold text-base tracking-wide">{thesis.call_number}</span>
+            </div>
+          )}
+
+          {/* ข้อมูลทั่วไป (Metadata Grid) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 text-sm">
+            <div>
+              <span className="text-xs font-bold text-slate-400 block mb-1">ผู้จัดทำ / ผู้แต่ง</span>
+              <div className="flex flex-wrap gap-1.5 font-semibold text-slate-700 dark:text-slate-200">
+                {authors.map((a, i) => (
+                  <button key={i} onClick={() => handleTag("author", a)} className="text-blue-600 dark:text-blue-400 hover:underline">
+                    {a}{i < authors.length - 1 ? ',' : ''}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="text-xs font-bold text-slate-400 block mb-1">สาขาวิชา / หลักสูตร</span>
+              <button onClick={() => handleTag("major", (thesis.major || '').trim().replace(/\s+/g, ' '))} className="font-semibold text-blue-600 dark:text-blue-400 hover:underline text-left">
+                {thesis.major || "-"}
+              </button>
+            </div>
+
+            <div>
+              <span className="text-xs font-bold text-slate-400 block mb-1">ระดับการศึกษา</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">{thesis.education_level || "-"}</span>
+            </div>
+
+            <div>
+              <span className="text-xs font-bold text-slate-400 block mb-1">อาจารย์ที่ปรึกษา</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {[thesis.advisor_1, thesis.advisor_2, thesis.advisor_3].filter(Boolean).join(', ') || "-"}
+              </span>
+            </div>
           </div>
 
-          {/* ⭐️ การ์ดแสดงระเบียบวิธีวิจัย (ถ้ามีข้อมูล) */}
-          {hasMethodology && (
-            <div className="mb-8 p-6 bg-gradient-to-br from-indigo-50/70 to-blue-50/70 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 space-y-4">
-              <h4 className="font-extrabold text-indigo-900 dark:text-indigo-300 text-base flex items-center gap-2">
-                <FlaskConical className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> ระเบียบวิธีวิจัย (Research Methodology)
+          {/* ระเบียบวิธีวิจัย (ถ้ามี) */}
+          {(thesis.research_type || thesis.sample_size || thesis.instruments || thesis.statistics) && (
+            <div className="p-4 bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-2xl space-y-3">
+              <h4 className="font-extrabold text-blue-800 dark:text-blue-300 text-xs flex items-center gap-1.5 uppercase tracking-wider">
+                <FlaskConical className="w-4 h-4" /> ระเบียบวิธีวิจัย (Research Methodology)
               </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                {thesis.research_type && (
-                  <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">ประเภทการวิจัย</span>
-                    <span className="font-bold text-indigo-700 dark:text-indigo-300">{thesis.research_type}</span>
-                  </div>
-                )}
-                {thesis.sample_size && (
-                  <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1 flex items-center gap-1"><Users className="w-3.5 h-3.5"/> ประชากรและกลุ่มตัวอย่าง</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{thesis.sample_size}</span>
-                  </div>
-                )}
-                {thesis.instruments && (
-                  <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1 flex items-center gap-1"><Wrench className="w-3.5 h-3.5"/> เครื่องมือที่ใช้</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{thesis.instruments}</span>
-                  </div>
-                )}
-                {thesis.statistics && (
-                  <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1 flex items-center gap-1"><BarChart2 className="w-3.5 h-3.5"/> สถิติที่ใช้ในการวิเคราะห์</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{thesis.statistics}</span>
-                  </div>
-                )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {thesis.research_type && <div><span className="font-bold text-slate-400 block">ประเภทการวิจัย:</span><span className="font-semibold">{thesis.research_type}</span></div>}
+                {thesis.sample_size && <div><span className="font-bold text-slate-400 block">กลุ่มตัวอย่าง:</span><span className="font-semibold">{thesis.sample_size}</span></div>}
+                {thesis.instruments && <div><span className="font-bold text-slate-400 block">เครื่องมือวิจัย:</span><span className="font-semibold">{thesis.instruments}</span></div>}
+                {thesis.statistics && <div><span className="font-bold text-slate-400 block">สถิติที่ใช้:</span><span className="font-semibold">{thesis.statistics}</span></div>}
               </div>
             </div>
           )}
 
-          <div className="space-y-8">
-            <div>
-              <h4 className="font-bold text-black dark:text-white mb-3 text-lg border-b border-slate-200 dark:border-slate-700 pb-2">{t.abstractTh}</h4>
-              <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line bg-slate-50/30 dark:bg-slate-900/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">{thesis.abstract_th || "-"}</p>
+          {/* บทคัดย่อ (Tabs ไทย/อังกฤษ) */}
+          <div>
+            <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 mb-3">
+              <button onClick={() => setActiveTab('th')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'th' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                บทคัดย่อ (ภาษาไทย)
+              </button>
+              {thesis.abstract_en && (
+                <button onClick={() => setActiveTab('en')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'en' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                  Abstract (English)
+                </button>
+              )}
             </div>
-            {thesis.abstract_en && (
-              <div>
-                <h4 className="font-bold text-black dark:text-white mb-3 text-lg border-b border-slate-200 dark:border-slate-700 pb-2">{t.abstractEn}</h4>
-                <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line bg-slate-50/30 dark:bg-slate-900/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">{thesis.abstract_en}</p>
-              </div>
-            )}
+
+            <div className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 p-4 bg-slate-50/60 dark:bg-slate-950/40 rounded-2xl border border-slate-100 dark:border-slate-800 whitespace-pre-line">
+              {activeTab === 'th' ? (thesis.abstract_th || "ไม่มีข้อมูลบทคัดย่อภาษาไทย") : (thesis.abstract_en || "No abstract available.")}
+            </div>
+          </div>
+
+          {/* คำสืบค้น (Keywords) */}
+          {thesis.keywords && (
             <div>
-              <h4 className="font-bold text-black dark:text-white mb-3">{t.keywords}</h4>
+              <span className="text-xs font-bold text-slate-400 block mb-2">คำสืบค้น (Keywords)</span>
               <div className="flex flex-wrap gap-2">
-                {thesis.keywords?.split(/[,，\n]+/).filter((k: string) => k.trim() !== '').map((kw: string, i: number) => (
-                  <button key={i} onClick={() => handleTag("keyword", kw.trim())} className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold text-sm rounded-lg border border-blue-100 dark:border-blue-800/50 hover:bg-blue-100 transition-colors">
+                {thesis.keywords.split(/[,，\n]+/).filter(k => k.trim()).map((kw, i) => (
+                  <button key={i} onClick={() => handleTag("keyword", kw.trim())} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 transition-colors">
                     #{kw.trim()}
                   </button>
                 ))}
               </div>
             </div>
-          </div>
-          <div className="mt-8 text-center border-t border-slate-100 dark:border-slate-800 pt-6">
-             <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t.copyright}</p>
-          </div>
+          )}
+
         </div>
-        
-        {/* Actions Footer */}
-        <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-3 relative justify-center sm:justify-between">
-          <div className="flex items-center gap-4 text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-extrabold px-4 py-2.5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-             <span title="ยอดเข้าชม" className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400"><Eye className="w-4 h-4" /> {thesis.view_count || 0}</span>
-             <span className="w-px h-4 bg-slate-200 dark:bg-slate-700"></span>
-             <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400"><Download className="w-4 h-4" /> {thesis.download_count || 0}</span>
+
+        {/* Footer Actions */}
+        <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 flex flex-wrap justify-between items-center gap-3">
+          <div className="text-xs text-slate-400 font-semibold">
+            ID: {thesis.id}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-center">
-            {Boolean(thesis.has_chat) && (
-              <button onClick={() => setShowChat(true)} className="flex items-center gap-1.5 font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all">
-                <Bot className="w-4 h-4 text-amber-200" /> แชท AI
-              </button>
-            )}
-
-            {Boolean(thesis.ai_summary) && (
-              <button onClick={() => setShowAISummary(true)} className="flex items-center gap-1.5 font-bold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all">
-                <Sparkles className="w-4 h-4 text-amber-200 animate-pulse" /> AI สรุป
-              </button>
-            )}
-
-            <Link href={`/thesis/${thesis.id}`} target="_blank" className="flex items-center gap-1.5 font-bold text-blue-700 dark:text-blue-300 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-4 py-2.5 rounded-2xl border border-blue-200 dark:border-blue-800 text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition-all">
-              <Globe className="w-4 h-4 text-blue-600" /> หน้าเฉพาะเล่ม
-            </Link>
-
-            {/* Citation */}
-            <div className="relative">
-              <button onClick={() => setShowCitationModal(!showCitationModal)} className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-100 dark:bg-slate-800 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition-all">
-                <Quote className="w-4 h-4 text-amber-500" /> อ้างอิง
-              </button>
-
-              {showCitationModal && (
-                <div className="absolute bottom-full right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-right">
-                  <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">เลือกรูปแบบการอ้างอิง</p>
-                  {['NBU', 'APA7', 'MLA9', 'Chicago', 'Vancouver', 'Harvard'].map((style) => (
-                    <button key={style} onClick={() => copyCitation(thesis, style)} className={`w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors flex items-center justify-between ${copiedId === `cite-${style}` ? 'bg-green-50 text-green-600 dark:bg-green-900/30' : 'hover:bg-blue-50 text-slate-700 dark:text-slate-300 dark:hover:bg-blue-900/30 hover:text-blue-600'}`}>
-                      {style} {copiedId === `cite-${style}` && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Share */}
-            <div className="relative">
-              <button onClick={() => setShowShareModal(!showShareModal)} className={`flex items-center gap-1.5 font-bold px-4 py-2.5 rounded-2xl border text-xs sm:text-sm shadow-sm hover:scale-105 active:scale-95 transition-all ${copiedId?.startsWith('share') ? 'bg-emerald-50 text-emerald-600 border-emerald-300' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200'}`}>
-                {copiedId?.startsWith('share') ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4 text-purple-500" />} 
-                <span>{copiedId?.startsWith('share') ? 'คัดลอกแล้ว' : 'แชร์'}</span>
-              </button>
-
-              {showShareModal && (
-                <div className="absolute bottom-full right-0 mb-2 w-[220px] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-[500] animate-in fade-in zoom-in origin-bottom-right">
-                  <p className="text-xs font-bold text-slate-400 px-3 py-1 border-b border-slate-100 dark:border-slate-700 mb-1">แชร์ไปที่</p>
-                  <button onClick={() => triggerShare(thesis, 'native')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-blue-50 text-slate-700 dark:text-slate-300 hover:text-blue-600"><Share className="w-3.5 h-3.5" /> แชร์ผ่านมือถือ</button>
-                  <button onClick={() => triggerShare(thesis, 'copy')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-blue-50 text-slate-700 dark:text-slate-300 hover:text-blue-600"><LinkIcon className="w-3.5 h-3.5" /> คัดลอกลิงก์</button>
-                  <button onClick={() => triggerShare(thesis, 'line')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-[#00c300]/10 text-slate-700 dark:text-slate-300 hover:text-[#00c300]"><MessageSquare className="w-3.5 h-3.5" /> LINE</button>
-                  <button onClick={() => triggerShare(thesis, 'facebook')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-[#1877F2]/10 text-slate-700 dark:text-slate-300 hover:text-[#1877F2]"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg> Facebook</button>
-                  <button onClick={() => triggerShare(thesis, 'email')} className="w-full text-left px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-2.5 hover:bg-red-50 text-slate-700 dark:text-slate-300 hover:text-red-600"><Mail className="w-3.5 h-3.5" /> Gmail (อีเมล)</button>
-                </div>
-              )}
-            </div>
-
+          <div className="flex flex-wrap items-center gap-2.5">
             {thesis.drive_url && (
-              <a href={getDirectDownloadUrl(thesis.drive_url)} onClick={() => onTrackStat(thesis.id, 'download')} className="flex items-center gap-1.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all">
-                <Download className="w-4 h-4" /> ดาวน์โหลด
+              <a href={getDirectDownloadUrl(thesis.drive_url)} onClick={() => onTrackStat(thesis.id, 'download')} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl transition-colors shadow-sm text-sm">
+                <Download className="w-4 h-4" /> ดาวน์โหลดเอกสาร
               </a>
             )}
 
-            {thesis.tdc_url && (
-              <a href={thesis.tdc_url} target="_blank" rel="noreferrer" onClick={() => onTrackStat(thesis.id, 'view')} className="flex items-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all">
-                <ExternalLink className="w-4 h-4" /> TDC
+            {thesis.tdc_url ? (
+              <a href={thesis.tdc_url} target="_blank" rel="noreferrer" onClick={() => onTrackStat(thesis.id, 'view')} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-xl transition-colors shadow-sm text-sm">
+                <ExternalLink className="w-4 h-4" /> เปิดบน TDC
               </a>
+            ) : (
+              <span className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 select-none">
+                ไม่ได้เผยแพร่บน TDC
+              </span>
             )}
           </div>
         </div>
-      </div>
 
-      {showAISummary && <AISummaryModal thesis={thesis} onClose={() => setShowAISummary(false)} onOpenFullDetails={() => {}} />}
-      {showChat && <ThesisChatModal thesis={thesis} onClose={() => setShowChat(false)} />}
+      </div>
     </div>
   );
 }

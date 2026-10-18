@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+export const dynamic = 'force-dynamic'; // ⭐️ บังคับให้ทำงานแบบ Dynamic ป้องกัน Build ค้าง
 
 export async function POST(req: Request) {
   try {
@@ -11,6 +11,11 @@ export async function POST(req: Request) {
     if (!text || text.trim().length === 0) {
       return NextResponse.json({ error: 'ไม่พบข้อความในไฟล์ PDF' }, { status: 400 });
     }
+
+    // ⭐️ เรียกใช้ OpenAI ข้างในนี้ ป้องกัน Error ตอน npm run build
+    const openai = new OpenAI({ 
+      apiKey: process.env.OPENAI_API_KEY || '' 
+    });
 
     const systemPrompt = `คุณเป็นระบบ AI ผู้เชี่ยวชาญด้านการวิเคราะห์เอกสารวิทยานิพนธ์/สารนิพนธ์ของมหาวิทยาลัยนอร์ทกรุงเทพ (North Bangkok University)
 หน้าที่ของคุณคือ สกัดข้อมูลบรรณานุกรมจากเนื้อหา 10 หน้าแรกของเล่มวิทยานิพนธ์ที่ส่งให้ 

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Edit, Trash2, Loader2, X, Save, Plus, Minus, BarChart3, Filter, RotateCcw, Check, Calendar } from "lucide-react";
+import { Search, Edit, Trash2, Loader2, X, Save, Plus, Minus, BarChart3, Filter, RotateCcw, Check, Calendar, Bookmark } from "lucide-react";
 import { Thesis } from "../types/thesis";
 import { extractAndChunkPDF, cleanAndRepairThaiText } from "../utils/pdfChunker";
 
@@ -14,10 +14,10 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   
-  // ⭐️ States สำหรับตัวกรองของ Admin (เพิ่ม filterYear)
+  // States สำหรับตัวกรองของ Admin
   const [filterResourceType, setFilterResourceType] = useState("");
   const [filterMajor, setFilterMajor] = useState("");
-  const [filterYear, setFilterYear] = useState(""); // ⭐️ เพิ่มค้นหาปีพิมพ์
+  const [filterYear, setFilterYear] = useState("");
 
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -62,7 +62,6 @@ export default function AdminDashboard() {
     "รายงานวิจัย"
   ];
 
-  // ⭐️ อัปเดต fetchData ส่ง publish_year ไปด้วย
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -84,7 +83,6 @@ export default function AdminDashboard() {
       const json = await res.json();
       
       if (json.error) {
-        console.error("API Error:", json.error);
         setStats({ resources: [], majors: [], total: 0 });
       } else {
         setStats({
@@ -94,7 +92,6 @@ export default function AdminDashboard() {
         });
       }
     } catch (err) { 
-      console.error("Fetch Stats Error:", err); 
       setStats({ resources: [], majors: [], total: 0 });
     } finally { 
       setIsStatsLoading(false); 
@@ -173,9 +170,7 @@ export default function AdminDashboard() {
 
       let textToSend = extractedText;
       if (extractedText.length > 100000) {
-        const headText = extractedText.slice(0, 50000);
-        const tailText = extractedText.slice(-50000);
-        textToSend = `${headText}\n\n...[ละเว้นเนื้อหากลางเล่ม]...\n\n${tailText}`;
+        textToSend = `${extractedText.slice(0, 50000)}\n\n...[ละเว้นเนื้อหากลางเล่ม]...\n\n${extractedText.slice(-50000)}`;
       }
 
       const res = await fetch('/api/admin/summarize', { 
@@ -195,7 +190,7 @@ export default function AdminDashboard() {
           instruments: data.methodology?.instruments || prev.instruments,
           statistics: data.methodology?.statistics || prev.statistics,
         } : null);
-        alert("✨ AI สรุปเนื้อหาและสกัดระเบียบวิธีวิจัยสำเร็จ! กรุณาตรวจเช็คและกดบันทึก");
+        alert("✨ AI สรุปเนื้อหาและสกัดระเบียบวิธีวิจัยสำเร็จ!");
       } else {
         alert("❌ เกิดข้อผิดพลาด: " + (data?.error || res.status));
       }
@@ -214,10 +209,7 @@ export default function AdminDashboard() {
     setIsIndexingChat(true);
     try {
       const chunks = await extractAndChunkPDF(file);
-      
-      if (!chunks || chunks.length === 0) {
-        throw new Error("ไม่พบข้อความในไฟล์ PDF");
-      }
+      if (!chunks || chunks.length === 0) throw new Error("ไม่พบข้อความในไฟล์ PDF");
 
       await fetch(`/api/admin/index-chunks?thesisId=${editingItem.id}`, { method: 'DELETE' });
 
@@ -248,7 +240,6 @@ export default function AdminDashboard() {
       setEditingItem({ ...editingItem, has_chat: true });
       alert(`✅ เตรียมข้อมูลสำหรับแชทสำเร็จเรียบร้อย!`);
     } catch (err: any) {
-      console.error(err);
       alert("❌ ประมวลผลล้มเหลว: " + (err.message || "เกิดข้อผิดพลาด"));
     } finally {
       setIsIndexingChat(false);
@@ -363,7 +354,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* ส่วนควบคุมตารางจัดการข้อมูล (เพิ่มช่องค้นหาปีที่พิมพ์) */}
+      {/* ส่วนควบคุมตารางจัดการข้อมูล */}
       <div id="table-section" className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4 scroll-mt-6">
         <div>
           <h2 className="text-xl font-bold text-slate-700 whitespace-nowrap">รายการข้อมูลในระบบ</h2>
@@ -376,7 +367,6 @@ export default function AdminDashboard() {
         
         <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
           
-          {/* ตัวกรองประเภททรัพยากร */}
           <select 
             value={filterResourceType} 
             onChange={e => { setFilterResourceType(e.target.value); setPage(1); }}
@@ -391,7 +381,6 @@ export default function AdminDashboard() {
             <option value="ไม่ได้ระบุ">ไม่ได้ระบุ</option>
           </select>
 
-          {/* ตัวกรองสาขาวิชา */}
           <select 
             value={filterMajor} 
             onChange={e => { setFilterMajor(e.target.value); setPage(1); }}
@@ -405,7 +394,7 @@ export default function AdminDashboard() {
             <option value="ไม่ได้ระบุ">ไม่ได้ระบุ</option>
           </select>
 
-          {/* ⭐️ ช่องค้นหาปีที่พิมพ์ (เพิ่มใหม่ตามคำขอ) */}
+          {/* ช่องค้นหาปีพิมพ์ */}
           <div className="relative w-32">
             <input 
               type="text" 
@@ -418,7 +407,6 @@ export default function AdminDashboard() {
             <Calendar className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
           </div>
 
-          {/* ปุ่มรีเซ็ตตัวกรอง */}
           {(filterResourceType || filterMajor || filterYear || search) && (
             <button 
               onClick={() => { setFilterResourceType(""); setFilterMajor(""); setFilterYear(""); setSearch(""); setPage(1); }} 
@@ -429,7 +417,6 @@ export default function AdminDashboard() {
             </button>
           )}
 
-          {/* ช่องค้นหาคำ */}
           <div className="relative flex-1 sm:w-60">
             <input 
               type="text" 
@@ -469,6 +456,12 @@ export default function AdminDashboard() {
                     <td className="p-4">
                       <p className="font-bold text-blue-700 line-clamp-1" title={item.title_th}>{item.title_th}</p>
                       {item.title_en && <p className="text-sm text-slate-500 italic line-clamp-1">{item.title_en}</p>}
+                      {/* ⭐️ แสดงเลขเรียกหนังสือในตาราง */}
+                      {item.call_number && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 w-max mt-1">
+                          <Bookmark className="w-3 h-3 text-amber-600" /> {item.call_number}
+                        </span>
+                      )}
                     </td>
                     <td className="p-4">
                       <p className="font-bold text-slate-700 text-sm line-clamp-1" title={item.author}>{item.author || "-"}</p>
@@ -515,6 +508,20 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   <div><label className="block text-sm font-bold mb-1">ชื่อเรื่อง (TH)</label><input type="text" value={editingItem.title_th || ''} onChange={e => setEditingItem({...editingItem, title_th: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500" required /></div>
                   <div><label className="block text-sm font-bold mb-1">ชื่อเรื่อง (EN)</label><input type="text" value={editingItem.title_en || ''} onChange={e => setEditingItem({...editingItem, title_en: e.target.value})} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500" /></div>
+                </div>
+
+                {/* ⭐️ ช่องใส่เลขเรียกหนังสือ (Call Number) ในหน้าแก้ไข */}
+                <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl">
+                  <label className="block text-xs font-bold text-amber-800 mb-1.5 flex items-center gap-1.5">
+                    <Bookmark className="w-4 h-4 text-amber-600" /> เลขเรียกหนังสือ (Call Number)
+                  </label>
+                  <input 
+                    type="text" 
+                    value={editingItem.call_number || ''} 
+                    onChange={e => setEditingItem({...editingItem, call_number: e.target.value})} 
+                    className="w-full p-2.5 bg-white border border-amber-200 rounded-xl text-sm font-semibold text-slate-800 outline-none focus:border-amber-400 shadow-sm" 
+                    placeholder="เช่น วพ 333.72 ว472น 2568" 
+                  />
                 </div>
                 
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
