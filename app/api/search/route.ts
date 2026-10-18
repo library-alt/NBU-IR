@@ -18,7 +18,8 @@ const buildCondition = (field: string, text: string) => {
     case 'major': return `major.ilike.${safeText}`;
     case 'education_level': return `education_level.ilike.${safeText}`;
     case 'keyword': return `keywords.ilike.${safeText}`;
-    default: return `title_th.ilike.${safeText},title_en.ilike.${safeText},keywords.ilike.${safeText},author.ilike.${safeText},major.ilike.${safeText},advisor_1.ilike.${safeText},resource_type.ilike.${safeText}`;
+    case 'call_number': return `call_number.ilike.${safeText}`; // ⭐️ รองรับการค้นหาตามเลขเรียกหนังสือ
+    default: return `title_th.ilike.${safeText},title_en.ilike.${safeText},keywords.ilike.${safeText},author.ilike.${safeText},major.ilike.${safeText},advisor_1.ilike.${safeText},resource_type.ilike.${safeText},call_number.ilike.${safeText}`;
   }
 };
 
@@ -71,7 +72,6 @@ export async function POST(req: Request) {
     }
 
     const cleanRawQuery = (body.query || '').replace(/[\r\n]+/g, ' ').trim();
-    // ⭐️ เพิ่ม fetchAll มารับคำสั่ง
     const { searchField, mode, extraQueries, isExactMatch, fetchAll } = body;
     
     if (!cleanRawQuery && (!extraQueries || extraQueries.length === 0) && !fetchAll) {
@@ -81,7 +81,8 @@ export async function POST(req: Request) {
     let data = [];
     let error = null;
     
-    const SELECT_COLUMNS = 'id, title_th, title_en, author, publish_year, education_level, major, resource_type, abstract_th, abstract_en, advisor_1, advisor_2, advisor_3, tdc_url, drive_url, keywords, view_count, download_count, similarity, ai_summary, has_chat, research_type, sample_size, instruments, statistics';
+    // ⭐️ เพิ่ม call_number ใน SELECT_COLUMNS ตรงนี้เรียบร้อยแล้วครับ!
+    const SELECT_COLUMNS = 'id, title_th, title_en, author, publish_year, education_level, major, resource_type, abstract_th, abstract_en, advisor_1, advisor_2, advisor_3, tdc_url, drive_url, keywords, call_number, view_count, download_count, similarity, ai_summary, has_chat, research_type, sample_size, instruments, statistics';
 
     if (mode === 'Semantic') {
       const embeddingResponse = await openai.embeddings.create({ model: 'text-embedding-3-small', input: cleanRawQuery });
@@ -93,7 +94,6 @@ export async function POST(req: Request) {
     } else {
       let dbQuery = supabase.from('theses').select(SELECT_COLUMNS.replace(', similarity', ''));
       
-      // ⭐️ ถ้ามีคำสั่ง fetchAll ให้ดึง 20 รายการล่าสุดส่งกลับไปเลย ไม่ต้องสนใจเงื่อนไขค้นหา
       if (fetchAll) {
         const { data: recentData, error: recentError } = await dbQuery.order('id', { ascending: false }).limit(20);
         if (recentError) throw recentError;

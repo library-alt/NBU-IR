@@ -47,20 +47,21 @@ export function ThesisCard({
 
       {/* Meta Tags */}
       <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400 mb-5 font-medium">
+        
+        {/* ผู้แต่ง */}
         <div className="bg-gray-100 dark:bg-slate-800 px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-colors">
           <User className="w-3.5 h-3.5 text-slate-500" /> 
           <div className="flex flex-wrap">{renderAuthors(item.author)}</div>
         </div>
 
-        {/* ป้ายแสดงเลขเรียกหนังสือ (Call Number) */}
+        {/* ⭐️ ป้ายเลขเรียกหนังสือ (Call Number) วางไว้ข้างหน้าให้เห็นชัดเจน */}
         {item.call_number && (
-          <div className="bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 transition-colors shadow-sm">
-            <Bookmark className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+          <div className="bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 transition-colors shadow-sm">
+            <Bookmark className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>เลขเรียก: {item.call_number}</span>
           </div>
         )}
         
-        {/* ⭐️ แก้ไขให้ใส่ || "" ป้องกัน undefined */}
         {item.resource_type && (
           <button onClick={() => onTagClick("all", item.resource_type || "")} className="bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300 px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-purple-100 transition-colors border border-purple-100 dark:border-purple-800/50">
             <FileText className="w-3.5 h-3.5" /> {item.resource_type}
@@ -102,14 +103,12 @@ export function ThesisCard({
         
         <div className="flex flex-wrap gap-2.5 justify-start sm:justify-end items-center w-full md:w-auto mt-3 md:mt-0">
           
-          {/* ตัวนับเข้าชม/ดาวน์โหลด */}
           <div className="flex items-center gap-3.5 text-[15px] text-slate-600 dark:text-slate-300 font-extrabold mr-1 bg-slate-50 dark:bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
             <span title="ยอดเข้าชม" className="flex items-center gap-1.5"><Eye className="w-4 h-4 text-blue-500" />{item.view_count || 0}</span>
             <span className="w-px h-4 bg-slate-300 dark:bg-slate-600"></span>
             <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5"><Download className="w-4 h-4 text-emerald-500" />{item.download_count || 0}</span>
           </div>
 
-          {/* ปุ่ม แชท AI */}
           {Boolean(item.has_chat) && (
             <button
               onClick={() => onChatSelect ? onChatSelect(item) : onSelect(item)}
@@ -121,7 +120,6 @@ export function ThesisCard({
             </button>
           )}
 
-          {/* ปุ่ม AI สรุป */}
           {Boolean(item.ai_summary) && (
             <button
               onClick={() => { 
@@ -143,7 +141,7 @@ export function ThesisCard({
             </a>
           )}
 
-          {/* ปุ่ม TDC */}
+          {/* ⭐️ เช็คสถานะ TDC: ถ้าไม่มีลิงก์ ให้แสดงป้ายสีเทาว่า "ไม่ได้เผยแพร่บน TDC" */}
           {item.tdc_url ? (
             <a href={item.tdc_url} target="_blank" rel="noreferrer" onClick={() => onTrackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
               <ExternalLink className="w-4 h-4" /> TDC

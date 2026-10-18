@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Download, ExternalLink, Bookmark, User, GraduationCap, Calendar, BookOpen, Tag, Share2, Check, FlaskConical, FileText } from "lucide-react";
+import { X, Download, ExternalLink, Bookmark, Tag, Share2, Check, FlaskConical } from "lucide-react";
 import { Thesis } from "../../types/thesis";
 
 interface ThesisModalProps {
@@ -40,6 +40,9 @@ export function ThesisModal({
   };
 
   const authors = (thesis.author || "").split(/\s*,\s*|\s+และ\s+|\s+and\s+/i).map(a => a.trim()).filter(Boolean);
+  
+  // รวมอาจารย์ที่ปรึกษาทั้งหมด
+  const advisors = [thesis.advisor_1, thesis.advisor_2, thesis.advisor_3].filter(Boolean) as string[];
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
@@ -81,7 +84,7 @@ export function ThesisModal({
         {/* Body Content */}
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
           
-          {/* ⭐️ แถบแสดงเลขเรียกหนังสือ (Call Number) */}
+          {/* ⭐️ แสดงเลขเรียกหนังสือ (Call Number) */}
           {thesis.call_number && (
             <div className="flex items-center gap-2.5 p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl text-amber-900 dark:text-amber-200 font-bold text-sm shadow-sm">
               <Bookmark className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -115,15 +118,26 @@ export function ThesisModal({
               <span className="font-semibold text-slate-700 dark:text-slate-300">{thesis.education_level || "-"}</span>
             </div>
 
+            {/* ⭐️ อาจารย์ที่ปรึกษา: คลิกเพื่อค้นหาได้ทุกคน */}
             <div>
               <span className="text-xs font-bold text-slate-400 block mb-1">อาจารย์ที่ปรึกษา</span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">
-                {[thesis.advisor_1, thesis.advisor_2, thesis.advisor_3].filter(Boolean).join(', ') || "-"}
-              </span>
+              <div className="flex flex-wrap gap-1.5 font-semibold text-slate-700 dark:text-slate-200">
+                {advisors.length > 0 ? advisors.map((adv, idx) => (
+                  <button 
+                    key={idx} 
+                    type="button"
+                    onClick={() => handleTag("advisor", adv.trim())} 
+                    className="text-blue-600 dark:text-blue-400 hover:underline text-left cursor-pointer"
+                    title={`คลิกเพื่อค้นหาวิทยานิพนธ์ของ ${adv}`}
+                  >
+                    {adv}{idx < advisors.length - 1 ? ',' : ''}
+                  </button>
+                )) : <span className="text-slate-400">-</span>}
+              </div>
             </div>
           </div>
 
-          {/* ระเบียบวิธีวิจัย (ถ้ามี) */}
+          {/* ระเบียบวิธีวิจัย */}
           {(thesis.research_type || thesis.sample_size || thesis.instruments || thesis.statistics) && (
             <div className="p-4 bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-2xl space-y-3">
               <h4 className="font-extrabold text-blue-800 dark:text-blue-300 text-xs flex items-center gap-1.5 uppercase tracking-wider">
@@ -138,7 +152,7 @@ export function ThesisModal({
             </div>
           )}
 
-          {/* บทคัดย่อ (Tabs ไทย/อังกฤษ) */}
+          {/* บทคัดย่อ */}
           <div>
             <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 mb-3">
               <button onClick={() => setActiveTab('th')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'th' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
@@ -185,6 +199,7 @@ export function ThesisModal({
               </a>
             )}
 
+            {/* ⭐️ เช็คสถานะ TDC: ถ้ามีให้เปิด ถ้าไม่มีให้แสดงป้าย */}
             {thesis.tdc_url ? (
               <a href={thesis.tdc_url} target="_blank" rel="noreferrer" onClick={() => onTrackStat(thesis.id, 'view')} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-xl transition-colors shadow-sm text-sm">
                 <ExternalLink className="w-4 h-4" /> เปิดบน TDC
