@@ -1,0 +1,58 @@
+ThaiLIS Digital Collection
+Home
+New Metadata
+Upload
+Express Menu
+เพิ่มทรัพย์ ศรีสุวรรณ 
+ Logout
+Home มหาวิทยาลัยนอร์ทกรุงเทพ
+  กำลังทำงานกับรายการ : 5189 / 5190หมายเลขระเบียน : 6886
+แฟ้มเอกสารฉบับเต็ม: (ขนาดไม่เกิน 600M)
+อนุญาตให้ download ภายนอกเครือข่าย ThaiLIS (บทคัดย่อ)
+No.		จัดลำดับ	ชื่อแฟ้ม (คลิกบนชื่อแฟ้มเพื่อดูข้อมูล)	ขนาด		หมายเหตุ	
+1				WARAPHORN PHANCHANDEE.pdf	6.08 MB	ลบข้อมูลเอกสารฉบับเต็ม		
+ลิงค์สำหรับเข้าถึงเอกสาร   
+http://tdc.thailis.or.th/tdc/browse.php?option=show&institute_code=200&bib=6886&doc_type=0&TitleIndex=1
+
+Meta name : วราพร พันธ์จันทร์ดีDate create : 2026-10-15Last update : 2026-10-15 10:25:20
+Last access DT : 0000-00-00 00:00:00Amount of object : 1Document type : 29
+Element	Scheme	Data
+DC.Title		แนวทางการจัดการเชิงบูรณาการเพื่อลดมลพิษทางอากาศจากยานพาหนะ ในกรุงเทพมหานคร
+DC.Title.Alternative		Integrated management guidelines to reduce air pollution from vehicles in Bangkok
+DC.Creator		วราพร พันธ์จันทร์ดี
+DC.Subject		มลพิษทางอากาศ
+DC.Subject.Control	ThaSH	ยานยนต์ -- ผลกระทบจากมลพิษทางอากาศ -- การจัดการ -- วิจัย
+DC.Subject		ยานพาหนะ
+DC.Subject.Control	ThaSH	ยานพาหนะ -- ผลกระทบจากมลพิษทางอากาศ -- การจัดการ -- วิจัย
+DC.Subject		การควบคุมมลพิษ
+DC.Subject.Control	ThaSH	มลพิษทางอากาศ -- การจัดการ -- วิจัย
+DC.Subject.Control	ThaSH	การจัดการ -- วิจัย
+DC.Description.Abstract		การวิจัยครั้งนี้มีวัตถุประสงค์เพื่อ 1) ศึกษาสภาพแวดล้อมภายในและภายนอกที่เกี่ยวข้องกับ การจัดการมลพิษทางอากาศจากยานพาหนะ 2) ศึกษาการยอมรับมาตรการจัดการควบคุมมลพิษทาง อากาศจากยานพาหนะ จำแนกตามปัจจัยคุณลักษณะบุคคล 3) ศึกษาความรู้และทัศนคติเกี่ยวกับ มลพิษทางอากาศอันเกิดจากยานพาหนะและมาตรการควบคุมปัญหามลพิษทางอากาศ ที่ส่งผลต่อ การยอมรับมาตรการจัดการควบคุมมลพิษทางอากาศจากยานพาหนะ และ 4) นำเสนอแนวทางการ จัดการเชิงบูรณาการเพื่อลดมลพิษทางอากาศจากยานพาหนะในกรุงเทพมหานคร โดยใช้วิธีวิจัยเชิง สำรวจแบบผสมผสาน ประกอบด้วยวิธีการเชิงปริมาณจากกลุ่มตัวอย่าง จา นวน 384 คน และวิธีการ เชิงคุณภาพด้วยการสัมภาษณ์เชิงลึกผู้เชี่ยวชาญที่เกี่ยวข้อง 17 คน วิเคราะห์ข้อมูลโดยใช้สถิติเชิง พรรณนา การวิเคราะห์ความแปรปรวนทางเดียว การถดถอยเชิงพหุคูณ และการวิเคราะห์เนื้อหา ผลการวิจัยพบดังนี้ ปัญหามลพิษทางอากาศจากยานพาหนะในกรุงเทพมหานครมีสาเหตุหลัก จากปริมาณยานพาหนะที่เพิ่มขึ้น การใช้งานรถยนต์ที่มีอายุการใช้งานสูง และการจราจรที่ติดขัด มาตรการที่ดา เนินการในปัจจุบัน ได้แก่ การตรวจจับค่าควันดา การกา หนดเขตควบคุมมลพิษต่า และ การส่งเสริมการใช้ยานพาหนะพลังงานไฟฟ้า อย่างไรก็ตาม การบังคับใช้กฎหมายยังขาดความเข้มงวด การบูรณาการระหว่างหน่วยงานที่เกี่ยวข้องยังไม่มีประสิทธิภาพ และข้อจา กัดด้านโครงสร้างพื้นฐาน แนวทางการจัดการเชิงบูรณาการเสนอให้ใช้หลักการ PDCA ในการบริหารจัดการ โดยเน้นการกาหนด มาตรการที่ชัดเจน ซึ่งแนวทางการจัดการเชิงบูรณาการเพื่อลดมลพิษทางอากาศจากยานพาหนะ ในกรุงเทพมหานคร 5 แนวทาง ได้แก่ 1) การส่งเสริมความรู้และจิตสา นึกของประชาชนในการป้องกัน และแก้ไขปัญหามลพิษทางอากาศ 2) การพัฒนาระบบขนส่งมวลชนพลังงานสะอาดที่มีคุณภาพและ ประสิทธิภาพ ราคาที่เข้าถึงได้ 3) การส่งเสริมการเปลี่ยนผ่านสู่ยานยนต์ไฟฟ้าและเทคโนโลยีพลังงาน สะอาด 4) การพัฒนามาตรการบังคับใช้กฎหมายเพื่อเพิ่มประสิทธิภาพในการควบคุมและลดมลพิษ ทางอากาศ 5) การสร้างระบบสนับสนุนการทา งานร่วมกันระหว่างหน่วยงานเพื่อการจัดการสิ่งแวดล้อม ผลการวิจัยนี้สามารถใช้เป็นแนวทางเชิงนโยบายสา หรับหน่วยงานภาครัฐและภาคเอกชนในการพัฒนา แนวทางลดมลพิษทางอากาศจากยานพาหนะในกรุงเทพมหานครอย่างยั่งยืน
+DC.Description.Abstract		This study aims to: 1) study the indoor and outdoor environments related to vehicle-emitting air pollution management; 2) study the acceptance of vehicle-emitting air pollution control measures classified by personal characteristics; 3) study the knowledge and attitudes regarding vehicle-emitting air pollution and control measures affecting public acceptance of such policies; and 4) propose integrated management guideline for reducing vehicle-emitting air pollution in Bangkok. A mixed-method survey was used, comprising quantitative methods from a sample of 384 people and qualitative methods through in-depth interviews with 17 relevant experts. Data were analyzed using descriptive statistics, one-way ANOVA, multiple regression, and content analysis. The findings revealed that vehicle-emitting air pollution in Bangkok is primarily caused by the increasing number of vehicles, the use of older vehicles, and traffic congestion. Current measures include black smoke detection, the designation of low emission control zones, and the promotion of electric vehicles. However, law enforcement lacks strickness, integration among relevant agencies is ineffective, and infrastructure limitations exist. Based on the findings, an integrated management approach proposes the use of PDCA principles, emphasizing the establishment of clear measures. The integrated management approach to reduce air pollution comprises 5 approaches: 1) Promoting public knowledge and awareness regarding air pollution prevention; 2) Developing a high quality, efficient, and affordable clean-energy mass transit system; 3) Promoting the transition to electric vehicles and clean energy technologies; 4) Developing law enforcement measures to improve the effectiveness of air pollution control; and 5) Creating a collaborative support system between agencies for environmental management. This research result can be used as a policy guideline for government and private sector agencies in developing sustainable approaches to reduce air pollution from vehicles in Bangkok.
+DC.Publisher		มหาวิทยาลัยนอร์ทกรุงเทพ. สำนักหอสมุด
+DC.Publisher.Address		กรุงเทพมหานคร
+DC.Publisher.Email		library@northbkk.ac.th
+DC.Contributor		ณัฐภัสสร ธนาบวรพาณิชย์
+DC.Contributor.Role		อาจารย์ที่ปรึกษา
+DC.Contributor		พิศมัย จารุจิตติพันธ์
+DC.Contributor.Role		อาจารย์ที่ปรึกษา
+DC.Date.Created	ISO8601	2568
+DC.Date.Modified	ISO8601	2569-10-15
+DC.Date.Issued	ISO8601	2569-10-15
+DC.Type	IMT	วิทยานิพนธ์/Thesis
+DC.Format	IMT	application/pdf
+DC.Format.Extent		6221.974609375 KB
+DC.Identifier.URL		http://dcms.thailis.or.th/dcms/dccheck.php?Int_code=200&RecId=6886&obj_id=10426
+DC.Language	ISO639-2	tha
+DC.Coverage.Spatial		กรุงเทพฯ
+DC.Thesis.DegreeName		ปรัชญาดุษฎีบัณฑิต
+DC.Thesis.Level		ปริญญาเอก
+DC.Thesis.Descipline		การจัดการ
+DC.Thesis.Grantor		มหาวิทยาลัยนอร์ทกรุงเทพ
+DC.Rights		มหาวิทยาลัยนอร์ทกรุงเทพ
+DC.Rights.Access		สามารถเข้าใช้ได้เฉพาะสมาชิกในกลุ่ม ThaiLIS
+Copyright 2000 - 2026 ThaiLIS Digital Collection Working Group. All rights reserved.
+ThaiLIS is Thailand Library Integrated System
+ปรับปรุงครั้งล่าสุดเมื่อ May 15 2025 09:14:12
+ภายใต้การควบคุมของคณะทำงานเอกสารเต็มในรูปอิเล็กทรอนิกส์
+ขณะนี้มีเจ้าหน้าที่กำลังทำงานกับเว็ปนี้ ผ่าน Server 202.28.199.150 จำนวน 1 คน

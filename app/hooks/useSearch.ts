@@ -187,7 +187,7 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
   const filteredAndSortedResults = useMemo(() => {
     let filtered = allResults.filter(item => {
       const matchResource = selectedResources.length === 0 || selectedResources.includes(item.resource_type!);
-      const matchMajor = selectedMajors.length === 0 || selectedMajors.includes(item.major?.trim().replace(/\s+/g, ' '));
+      const matchMajor = selectedMajors.length === 0 || selectedMajors.includes((item.major || '').trim().replace(/\s+/g, ' '));
       const matchResearchType = selectedResearchTypes.length === 0 || (item.research_type && selectedResearchTypes.includes(item.research_type));
       const matchAdvisor = selectedAdvisors.length === 0 || selectedAdvisors.includes(item.advisor_1!) || selectedAdvisors.includes(item.advisor_2!) || selectedAdvisors.includes(item.advisor_3!);
 
@@ -201,7 +201,7 @@ export function useSearch(lang: 'th' | 'en' | 'ch') {
       const matchStatistic = selectedStatistics.length === 0 || selectedStatistics.some(st => itemStats.includes(st));
 
       let matchYear = true;
-      if (selectedYears.length > 0) { matchYear = selectedYears.includes(item.publish_year); } 
+      if (selectedYears.length > 0) { matchYear = selectedYears.includes(item.publish_year || ""); } 
       else if (yearMin !== "" || yearMax !== "") {
         const itemYear = Number(item.publish_year);
         if (!item.publish_year || isNaN(itemYear) || itemYear === 0) matchYear = false; 

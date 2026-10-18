@@ -1,5 +1,5 @@
-// components/thesis/ThesisCard.tsx
-import { User, BookOpen, GraduationCap, Calendar, Eye, Download, ExternalLink, FileText, Sparkles, Bot } from "lucide-react";
+// app/components/thesis/ThesisCard.tsx
+import { User, BookOpen, GraduationCap, Calendar, Eye, Download, ExternalLink, FileText, Sparkles, Bot, Bookmark } from "lucide-react";
 import { Thesis } from "../../types/thesis";
 
 interface ThesisCardProps {
@@ -51,20 +51,33 @@ export function ThesisCard({
           <User className="w-3.5 h-3.5 text-slate-500" /> 
           <div className="flex flex-wrap">{renderAuthors(item.author)}</div>
         </div>
+
+        {/* ป้ายแสดงเลขเรียกหนังสือ (Call Number) */}
+        {item.call_number && (
+          <div className="bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 transition-colors shadow-sm">
+            <Bookmark className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span>เลขเรียก: {item.call_number}</span>
+          </div>
+        )}
         
+        {/* ⭐️ แก้ไขให้ใส่ || "" ป้องกัน undefined */}
         {item.resource_type && (
-          <button onClick={() => onTagClick("all", item.resource_type)} className="bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300 px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-purple-100 transition-colors border border-purple-100 dark:border-purple-800/50">
+          <button onClick={() => onTagClick("all", item.resource_type || "")} className="bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300 px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-purple-100 transition-colors border border-purple-100 dark:border-purple-800/50">
             <FileText className="w-3.5 h-3.5" /> {item.resource_type}
           </button>
         )}
 
-        <button onClick={() => onTagClick("major", item.major)} className="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1.5 rounded-2xl flex items-start gap-1.5 border border-indigo-100 dark:border-indigo-800/50 hover:bg-indigo-100 transition-colors text-left max-w-full">
-          <BookOpen className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /> <span className="whitespace-normal break-words leading-tight">{item.major?.trim().replace(/\s+/g, ' ') || "-"}</span>
-        </button>
+        {item.major && (
+          <button onClick={() => onTagClick("major", item.major || "")} className="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1.5 rounded-2xl flex items-start gap-1.5 border border-indigo-100 dark:border-indigo-800/50 hover:bg-indigo-100 transition-colors text-left max-w-full">
+            <BookOpen className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /> <span className="whitespace-normal break-words leading-tight">{item.major?.trim().replace(/\s+/g, ' ') || "-"}</span>
+          </button>
+        )}
         
-        <button onClick={() => onTagClick("education_level", item.education_level)} className="bg-gray-100 dark:bg-slate-800 px-3 py-1.5 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-colors flex items-center gap-1.5">
-          <GraduationCap className="w-3.5 h-3.5" />{item.education_level || "-"}
-        </button>
+        {item.education_level && (
+          <button onClick={() => onTagClick("education_level", item.education_level || "")} className="bg-gray-100 dark:bg-slate-800 px-3 py-1.5 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-colors flex items-center gap-1.5">
+            <GraduationCap className="w-3.5 h-3.5" />{item.education_level || "-"}
+          </button>
+        )}
         
         <button onClick={() => item.publish_year && onTagClick("year", item.publish_year)} className={`px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 transition-colors ${item.publish_year ? 'bg-gray-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-blue-100 hover:text-blue-700 cursor-pointer' : 'bg-red-50 dark:bg-red-900/20 text-red-500 cursor-default'}`}>
           <Calendar className="w-3.5 h-3.5" />{item.publish_year ? `${item.publish_year}` : t.noYear}
@@ -96,7 +109,7 @@ export function ThesisCard({
             <span title="ยอดดาวน์โหลด" className="flex items-center gap-1.5"><Download className="w-4 h-4 text-emerald-500" />{item.download_count || 0}</span>
           </div>
 
-          {/* ⭐️ ปุ่ม แชท AI: มีเพียงปุ่มเดียว และโชว์เฉพาะเล่มที่มีข้อมูลแชทเท่านั้น (has_chat === true) */}
+          {/* ปุ่ม แชท AI */}
           {Boolean(item.has_chat) && (
             <button
               onClick={() => onChatSelect ? onChatSelect(item) : onSelect(item)}
@@ -108,7 +121,7 @@ export function ThesisCard({
             </button>
           )}
 
-          {/* ⭐️ ปุ่ม AI สรุป: โชว์เฉพาะเล่มที่มีบทสรุป */}
+          {/* ปุ่ม AI สรุป */}
           {Boolean(item.ai_summary) && (
             <button
               onClick={() => { 
@@ -129,11 +142,18 @@ export function ThesisCard({
               <Download className="w-4 h-4" /> <span className="hidden sm:inline">{t.download}</span>
             </a>
           )}
-          {item.tdc_url && (
+
+          {/* ปุ่ม TDC */}
+          {item.tdc_url ? (
             <a href={item.tdc_url} target="_blank" rel="noreferrer" onClick={() => onTrackStat(item.id, 'view')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 rounded-xl transition-colors shadow-sm text-sm">
               <ExternalLink className="w-4 h-4" /> TDC
             </a>
+          ) : (
+            <span className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl text-xs select-none">
+              ไม่ได้เผยแพร่บน TDC
+            </span>
           )}
+
         </div>
       </div>
     </div>

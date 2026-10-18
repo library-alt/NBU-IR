@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Edit, Trash2, Loader2, X, Save, Plus, Minus, BarChart3, Filter, RotateCcw } from "lucide-react";
+import { Search, Edit, Trash2, Loader2, X, Save, Plus, Minus, BarChart3, Filter, RotateCcw, Check, Calendar } from "lucide-react";
 import { Thesis } from "../types/thesis";
 import { extractAndChunkPDF, cleanAndRepairThaiText } from "../utils/pdfChunker";
 
@@ -14,9 +14,10 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   
-  // ⭐️ States สำหรับตัวกรองของ Admin
+  // ⭐️ States สำหรับตัวกรองของ Admin (เพิ่ม filterYear)
   const [filterResourceType, setFilterResourceType] = useState("");
   const [filterMajor, setFilterMajor] = useState("");
+  const [filterYear, setFilterYear] = useState(""); // ⭐️ เพิ่มค้นหาปีพิมพ์
 
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -61,11 +62,11 @@ export default function AdminDashboard() {
     "รายงานวิจัย"
   ];
 
-  // ⭐️ อัปเดต fetchData ให้ส่งตัวกรองไปด้วย
+  // ⭐️ อัปเดต fetchData ส่ง publish_year ไปด้วย
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin?search=${encodeURIComponent(search)}&page=${page}&resource_type=${encodeURIComponent(filterResourceType)}&major=${encodeURIComponent(filterMajor)}`);
+      const res = await fetch(`/api/admin?search=${encodeURIComponent(search)}&page=${page}&resource_type=${encodeURIComponent(filterResourceType)}&major=${encodeURIComponent(filterMajor)}&publish_year=${encodeURIComponent(filterYear)}`);
       const json = await res.json();
       setData(json.data || []);
       setTotal(json.total || 0);
@@ -100,15 +101,28 @@ export default function AdminDashboard() {
     }
   };
 
-  // ดักฟังการเปลี่ยนแปลงตัวกรอง
   useEffect(() => {
     const timer = setTimeout(() => { fetchData(); }, 300); 
     return () => clearTimeout(timer);
-  }, [search, page, filterResourceType, filterMajor]);
+  }, [search, page, filterResourceType, filterMajor, filterYear]);
 
   useEffect(() => {
     fetchStats();
   }, [statStartMonth, statEndMonth, statStartYear, statEndYear]);
+
+  const handleSelectResourceType = (type: string) => {
+    const nextVal = filterResourceType === type ? "" : type;
+    setFilterResourceType(nextVal);
+    setPage(1);
+    document.getElementById('table-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleSelectMajor = (major: string) => {
+    const nextVal = filterMajor === major ? "" : major;
+    setFilterMajor(nextVal);
+    setPage(1);
+    document.getElementById('table-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const handleDelete = async (id: string | number, title: string) => {
     if (!confirm(`คุณแน่ใจหรือไม่ที่จะลบข้อมูล: ${title} ?\n(การกระทำนี้ไม่สามารถกู้คืนได้)`)) return;
@@ -277,37 +291,88 @@ export default function AdminDashboard() {
             </div>
             
             <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              
+              {/* แยกตามประเภททรัพยากร */}
               <div>
-                <h4 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">แยกตามประเภททรัพยากร</h4>
-                <div className="space-y-2.5">
-                  {(stats?.resources || []).length > 0 ? (stats.resources).map(r => (
-                    <div key={r.name} className="flex justify-between items-center bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-100">
-                      <span className="font-semibold text-slate-700">{r.name}</span>
-                      <span className="bg-blue-100 text-blue-700 font-bold px-2 py-1 rounded-lg text-xs">{r.count}</span>
-                    </div>
-                  )) : <p className="text-slate-400 text-sm">ไม่มีข้อมูลในช่วงเวลานี้</p>}
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider">แยกตามประเภททรัพยากร</h4>
+                  <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">คลิกเพื่อดูข้อมูล</span>
+                </div>
+                
+                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+                  {(stats?.resources || []).length > 0 ? (stats.resources).map(r => {
+                    const isSelected = filterResourceType === r.name;
+                    return (
+                      <button 
+                        key={r.name} 
+                        onClick={() => handleSelectResourceType(r.name)}
+                        className={`w-full flex justify-between items-center px-4 py-2.5 rounded-xl border transition-all text-left group
+                          ${isSelected 
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-300' 
+                            : 'bg-slate-50 hover:bg-blue-50 hover:border-blue-200 border-slate-100 text-slate-700'
+                          }`}
+                      >
+                        <span className={`font-semibold text-sm flex items-center gap-2 truncate mr-2 ${isSelected ? 'text-white' : 'group-hover:text-blue-700'}`}>
+                          {isSelected && <Check className="w-4 h-4 shrink-0" />} {r.name}
+                        </span>
+                        <span className={`font-bold px-2.5 py-1 rounded-lg text-xs shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'}`}>
+                          {r.count.toLocaleString()}
+                        </span>
+                      </button>
+                    );
+                  }) : <p className="text-slate-400 text-sm">ไม่มีข้อมูลในช่วงเวลานี้</p>}
                 </div>
               </div>
               
+              {/* แยกตามสาขาวิชา */}
               <div>
-                <h4 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">แยกตามสาขาวิชา (Top 5)</h4>
-                <div className="space-y-2.5">
-                  {(stats?.majors || []).length > 0 ? (stats.majors).slice(0, 5).map(m => (
-                    <div key={m.name} className="flex justify-between items-center bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-100">
-                      <span className="font-semibold text-slate-700 truncate mr-2" title={m.name}>{m.name}</span>
-                      <span className="bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded-lg text-xs shrink-0">{m.count}</span>
-                    </div>
-                  )) : <p className="text-slate-400 text-sm">ไม่มีข้อมูลในช่วงเวลานี้</p>}
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+                    แยกตามสาขาวิชา (ทั้งหมด {(stats?.majors || []).length})
+                  </h4>
+                  <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">คลิกเพื่อดูข้อมูล</span>
+                </div>
+
+                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+                  {(stats?.majors || []).length > 0 ? (stats.majors).map(m => {
+                    const isSelected = filterMajor === m.name;
+                    return (
+                      <button 
+                        key={m.name} 
+                        onClick={() => handleSelectMajor(m.name)}
+                        className={`w-full flex justify-between items-center px-4 py-2.5 rounded-xl border transition-all text-left group
+                          ${isSelected 
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm ring-2 ring-indigo-300' 
+                            : 'bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 border-slate-100 text-slate-700'
+                          }`}
+                      >
+                        <span className={`font-semibold text-sm truncate mr-2 flex items-center gap-2 ${isSelected ? 'text-white' : 'group-hover:text-indigo-700'}`}>
+                          {isSelected && <Check className="w-4 h-4 shrink-0" />} {m.name}
+                        </span>
+                        <span className={`font-bold px-2.5 py-1 rounded-lg text-xs shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-indigo-100 text-indigo-700'}`}>
+                          {m.count.toLocaleString()}
+                        </span>
+                      </button>
+                    );
+                  }) : <p className="text-slate-400 text-sm">ไม่มีข้อมูลในช่วงเวลานี้</p>}
                 </div>
               </div>
+
             </div>
           </div>
         </div>
       </div>
 
-      {/* ⭐️ ส่วนควบคุมตารางจัดการข้อมูล (เพิ่ม Dropdown ประเภททรัพยากร และ สาขาวิชา) */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
-        <h2 className="text-xl font-bold text-slate-700 whitespace-nowrap">รายการข้อมูลในระบบ</h2>
+      {/* ส่วนควบคุมตารางจัดการข้อมูล (เพิ่มช่องค้นหาปีที่พิมพ์) */}
+      <div id="table-section" className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4 scroll-mt-6">
+        <div>
+          <h2 className="text-xl font-bold text-slate-700 whitespace-nowrap">รายการข้อมูลในระบบ</h2>
+          {(filterResourceType || filterMajor || filterYear) && (
+            <p className="text-xs font-semibold text-blue-600 mt-1">
+              กำลังกรอง: {filterResourceType && `[ประเภท: ${filterResourceType}] `}{filterMajor && `[สาขา: ${filterMajor}] `}{filterYear && `[ปีพิมพ์: พ.ศ. ${filterYear}]`}
+            </p>
+          )}
+        </div>
         
         <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
           
@@ -315,40 +380,57 @@ export default function AdminDashboard() {
           <select 
             value={filterResourceType} 
             onChange={e => { setFilterResourceType(e.target.value); setPage(1); }}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 shadow-sm cursor-pointer"
+            className={`border rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold outline-none shadow-sm cursor-pointer transition-colors
+              ${filterResourceType ? 'bg-blue-50 border-blue-500 text-blue-700 ring-1 ring-blue-300' : 'bg-white border-slate-200 text-slate-700 focus:border-blue-500'}`}
           >
             <option value="">-- ทุกประเภททรัพยากร --</option>
             <option value="วิทยานิพนธ์">วิทยานิพนธ์</option>
             <option value="สารนิพนธ์">สารนิพนธ์</option>
             <option value="รายงานวิจัย">รายงานวิจัย</option>
             <option value="บทความวิจัยการประชุมวิชาการระดับชาติมหาวิทยาลัยนอร์ทกรุงเทพ">บทความวิจัยการประชุมวิชาการฯ</option>
+            <option value="ไม่ได้ระบุ">ไม่ได้ระบุ</option>
           </select>
 
           {/* ตัวกรองสาขาวิชา */}
           <select 
             value={filterMajor} 
             onChange={e => { setFilterMajor(e.target.value); setPage(1); }}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 shadow-sm max-w-[200px] truncate cursor-pointer"
+            className={`border rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold outline-none shadow-sm max-w-[180px] truncate cursor-pointer transition-colors
+              ${filterMajor ? 'bg-indigo-50 border-indigo-500 text-indigo-700 ring-1 ring-indigo-300' : 'bg-white border-slate-200 text-slate-700 focus:border-blue-500'}`}
           >
             <option value="">-- ทุกสาขาวิชา --</option>
             {MAJOR_OPTIONS.map(m => (
               <option key={m} value={m}>{m}</option>
             ))}
+            <option value="ไม่ได้ระบุ">ไม่ได้ระบุ</option>
           </select>
 
+          {/* ⭐️ ช่องค้นหาปีที่พิมพ์ (เพิ่มใหม่ตามคำขอ) */}
+          <div className="relative w-32">
+            <input 
+              type="text" 
+              placeholder="ปีพิมพ์ (2568)" 
+              value={filterYear} 
+              onChange={(e) => { setFilterYear(e.target.value); setPage(1); }} 
+              className={`w-full pl-8 pr-3 py-2 rounded-xl border outline-none shadow-sm text-xs sm:text-sm font-semibold transition-colors
+                ${filterYear ? 'bg-purple-50 border-purple-500 text-purple-700 ring-1 ring-purple-300' : 'bg-white border-slate-200 text-slate-700 focus:border-blue-500'}`}
+            />
+            <Calendar className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
+          </div>
+
           {/* ปุ่มรีเซ็ตตัวกรอง */}
-          {(filterResourceType || filterMajor || search) && (
+          {(filterResourceType || filterMajor || filterYear || search) && (
             <button 
-              onClick={() => { setFilterResourceType(""); setFilterMajor(""); setSearch(""); setPage(1); }} 
-              className="p-2 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-xl text-xs font-bold transition-colors"
-              title="ล้างการค้นหาและตัวกรอง"
+              onClick={() => { setFilterResourceType(""); setFilterMajor(""); setFilterYear(""); setSearch(""); setPage(1); }} 
+              className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-xl text-xs font-bold transition-colors flex items-center gap-1"
+              title="ล้างการค้นหาและตัวกรองทั้งหมด"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-4 h-4" /> <span className="hidden sm:inline">ล้างตัวกรอง</span>
             </button>
           )}
 
           {/* ช่องค้นหาคำ */}
-          <div className="relative flex-1 sm:w-64">
+          <div className="relative flex-1 sm:w-60">
             <input 
               type="text" 
               placeholder="ค้นหาชื่อเรื่อง, ผู้แต่ง..." 

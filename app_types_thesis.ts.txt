@@ -1,0 +1,43 @@
+// app/types/thesis.ts
+
+// 1. ภาษาที่รองรับในระบบ
+export type Lang = 'th' | 'en' | 'ch';
+
+// 2. โครงสร้างคำค้นหาขั้นสูง (Search Query)
+export interface SearchQuery {
+  text: string;
+  operator: string;
+  field: string;
+}
+
+// 3. โครงสร้างข้อมูลวิทยานิพนธ์/งานวิจัย (Thesis) รวมทุกฟิลด์สมบูรณ์
+export interface Thesis {
+  id: string | number;
+  title_th: string;
+  title_en?: string;
+  author: string;
+  publish_year?: string;
+  education_level?: string;
+  major?: string;
+  resource_type?: string;
+  abstract_th?: string;
+  abstract_en?: string;
+  advisor_1?: string;
+  advisor_2?: string;
+  advisor_3?: string;
+  tdc_url?: string;
+  drive_url?: string;
+  keywords?: string;
+  call_number?: string;       // เลขเรียกหนังสือ
+  view_count?: number;        // ยอดเข้าชม
+  download_count?: number;    // ยอดดาวน์โหลด
+  similarity?: number;        // ความแม่นยำ AI Semantic
+  ai_summary?: string;        // AI สรุปเนื้อหา
+  has_chat?: boolean;         // สถานะพร้อมใช้งาน Chat AI
+
+  // ฟิลด์ระเบียบวิธีวิจัย
+  research_type?: string;     // ประเภทการวิจัย เช่น วิจัยเชิงปริมาณ
+  sample_size?: string;       // กลุ่มตัวอย่าง เช่น 107 คน
+  instruments?: string;       // เครื่องมือวิจัย เช่น แบบสอบถาม
+  statistics?: string;        // สถิติที่ใช้ เช่น t-test, ANOVA
+}

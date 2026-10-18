@@ -132,7 +132,7 @@ export function ThesisModal({ thesis, onClose, t, onTagClick, onTrackStat, getPr
             
             <p><b>{t.publishYear}</b> {thesis.publish_year ? `${thesis.publish_year}` : <span className="text-red-500 font-semibold">{t.noYear}</span>}</p>
             <p><b>{t.eduLevel}</b> {thesis.education_level || "-"}</p>
-            <p className="md:col-span-2"><b>{t.major}</b> {thesis.major ? <button onClick={() => handleTag("major", thesis.major.trim().replace(/\s+/g, ' '))} className="text-blue-600 hover:underline text-left">{thesis.major.trim().replace(/\s+/g, ' ')}</button> : "-"}</p>
+            <p className="md:col-span-2"><b>{t.major}</b> {thesis.major ? <button onClick={() => handleTag("major", (thesis.major || '').trim().replace(/\s+/g, ' '))} className="text-blue-600 hover:underline text-left">{thesis.major.trim().replace(/\s+/g, ' ')}</button> : "-"}</p>
             <p className="md:col-span-2"><b>{t.advisor}</b> 
               {thesis.advisor_1 ? <button onClick={() => handleTag("advisor", thesis.advisor_1!)} className="text-blue-600 hover:underline ml-2">{thesis.advisor_1}</button> : "-"}
               {thesis.advisor_2 ? <>, <button onClick={() => handleTag("advisor", thesis.advisor_2!)} className="text-blue-600 hover:underline">{thesis.advisor_2}</button></> : ''}

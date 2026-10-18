@@ -5,7 +5,7 @@ import OpenAI from 'openai';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -21,22 +21,21 @@ export async function POST(req: Request) {
     const titleTh = cleanText(row['ชื่อวิทยานิพนธ์']);
     if (!titleTh) return NextResponse.json({ error: 'ข้าม: ไม่มีชื่อวิทยานิพนธ์' }, { status: 400 });
 
-    // ⭐️ 1. ดึงประเภททรัพยากรออกมาก่อน เพื่อนำไปใช้เป็นเงื่อนไขเช็คซ้ำ
     const resourceTypeClean = cleanText(row['ประเภททรัพยากร'] || row['ประเภท']) || 'วิทยานิพนธ์';
 
-    // ⭐️ 2. เช็คข้อมูลซ้ำ: ต้องซ้ำทั้ง "ชื่อเรื่อง" และ "ประเภททรัพยากร" ถึงจะถือว่าซ้ำ!
+    // เช็คข้อมูลซ้ำ
     const { data: existing } = await supabase
       .from('theses')
       .select('id')
       .eq('title_th', titleTh)
-      .eq('resource_type', resourceTypeClean) // เพิ่มเงื่อนไขนี้เข้าไป
+      .eq('resource_type', resourceTypeClean)
       .maybeSingle();
 
     if (existing) {
-      return NextResponse.json({ success: true, status: 'duplicate', title: titleTh });
+      return NextResponse.json({ success: true, status: 'duplicate', id: existing.id, title: titleTh });
     }
 
-    // ⭐️ 3. เตรียมข้อมูลส่วนที่เหลือ
+    // รวมคำสืบค้น
     const rawKeywords = [
       row['คำสืบค้น'], row['คำสืบค้น 1'], row['คำสืบค้น 2'], row['คำสืบค้น 3'],
       row['คำสืบค้น 4'], row['คำสืบค้น 5'], row['คำสืบค้น 6'], row['คำสืบค้น 7'],
@@ -55,7 +54,9 @@ export async function POST(req: Request) {
     const abstractEnClean = cleanText(row['บทคัดย่อภาษาอังกฤษ'] || row['บทคัดย่อ (EN)'] || row['abstract']);
     const titleEnClean = cleanText(row['ชื่อวิทยานิพนธ์ ภาษาอังกฤษ'] || row['ชื่อเรื่องภาษาอังกฤษ']);
     const publishYearClean = cleanText(row['ปีที่พิมพ์'] || row['ปี']);
+    const callNumberClean = cleanText(row['เลขเรียกหนังสือ'] || row['call_number']);
 
+    // แปลง AI Embedding
     const textToEmbed = `ชื่อเรื่อง: ${titleTh} \nสาขาวิชา/ประเภท: ${majorClean} ${resourceTypeClean}\nผู้แต่ง: ${authorClean} \nคำสืบค้น: ${mergedKeywords} \nบทคัดย่อ: ${abstractThClean}`;
 
     const embeddingResponse = await openai.embeddings.create({
@@ -64,8 +65,8 @@ export async function POST(req: Request) {
     });
     const embedding = embeddingResponse.data[0].embedding;
 
-    // ⭐️ 4. บันทึกลง Supabase
-    const { error } = await supabase.from('theses').insert({
+    // ⭐️ บันทึกลง Supabase ครบทุกช่อง รวมทั้ง AI Summary และ ระเบียบวิธีวิจัย
+    const { data: inserted, error } = await supabase.from('theses').insert({
       title_th: titleTh, 
       title_en: titleEnClean,
       author: authorClean,
@@ -81,18 +82,25 @@ export async function POST(req: Request) {
       tdc_url: cleanText(row['TDC']),
       drive_url: cleanText(row['Google Drive']),
       keywords: mergedKeywords,
-      embedding: embedding 
-    });
+      call_number: callNumberClean,
+      embedding: embedding,
+      // ⭐️ ฟิลด์ระเบียบวิธีวิจัยและ AI
+      ai_summary: cleanText(row['ai_summary']),
+      research_type: cleanText(row['research_type']),
+      sample_size: cleanText(row['sample_size']),
+      instruments: cleanText(row['instruments']),
+      statistics: cleanText(row['statistics']),
+      has_chat: Boolean(row['has_chat'])
+    }).select('id').single();
 
     if (error) {
-       // ดักจับ Error เผื่อตั้งค่า Table ผิดไว้
        if (error.code === '23505') {
-           throw new Error('ชื่อเรื่องนี้ซ้ำอยู่ในระบบ (ติด Database Unique Constraint กรุณาแก้การตั้งค่าตาราง)');
+           throw new Error('ชื่อเรื่องนี้ซ้ำอยู่ในระบบ (ติด Database Unique Constraint)');
        }
        throw error;
     }
 
-    return NextResponse.json({ success: true, status: 'success', title: titleTh });
+    return NextResponse.json({ success: true, status: 'success', id: inserted?.id, title: titleTh });
 
   } catch (err: any) {
     console.error('Import Error:', err);
